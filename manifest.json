@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "OPEN SEARCHAN 截图助手",
+  "version": "1.1.0",
+  "description": "Alt+Z 选区截图 → AI 多模态模型 → 右边栏对话",
+  "permissions": ["storage", "activeTab", "tabs"],
+  "commands": {
+    "screenshot": {
+      "suggested_key": { "default": "Alt+Z" },
+      "description": "选区截图并发送给 AI"
+    }
+  },
+  "host_permissions": ["*://*/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [{
+    "matches": ["*://*/*"],
+    "js": ["marked.min.js", "katex.min.js", "content.js"],
+    "css": ["content.css", "katex.min.css"],
+    "all_frames": false
+  }],
+  "web_accessible_resources": [{
+    "resources": ["content.css", "marked.min.js", "katex.min.js", "katex.min.css"],
+    "matches": ["*://*/*"]
+  }],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
