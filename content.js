@@ -466,7 +466,7 @@
             const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             const systemMsg = {
                 role: 'system',
-                content: i18n('systemPrompt').replace('$DATE$', dateStr),
+                content: i18n('systemPrompt').replace('__DATE__', dateStr),
             };
             const body = {
                 model: settings.model,
