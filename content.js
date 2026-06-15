@@ -330,20 +330,25 @@
         div.innerHTML = '<div class="os-msg-label">AI</div>'
             + `<div class="os-thinking-toggle">${i18n('thinkingCollapsed')}</div>`
             + '<div class="os-thinking-content"></div>'
-            + '<div class="os-msg-bubble"></div>';
+            + `<div class="os-msg-bubble"><span class="os-loading-dots">${i18n('loadingDots')}</span></div>`;
         const bubble = div.querySelector('.os-msg-bubble');
         const toggle = div.querySelector('.os-thinking-toggle');
         const thinkingEl = div.querySelector('.os-thinking-content');
+        const loadingEl = bubble.querySelector('.os-loading-dots');
         toggle.addEventListener('click', () => {
-            // 用 style.display === 'block' 判断（而非 !== 'none'，因 CSS 初始 display:none 无内联值）
             const shown = thinkingEl.style.display === 'block';
             thinkingEl.style.display = shown ? 'none' : 'block';
             toggle.textContent = shown ? i18n('thinkingCollapsed') : i18n('thinkingExpanded');
         });
         messagesEl.appendChild(div);
         let lastThinking = '';
+        let firstChunk = true;
         return {
             update(text, thinking) {
+                if (firstChunk && text) {
+                    firstChunk = false;
+                    if (loadingEl) loadingEl.remove();
+                }
                 if (thinking && thinking !== lastThinking) {
                     lastThinking = thinking;
                     thinkingEl.textContent = thinking;
@@ -352,7 +357,10 @@
                 bubble.innerHTML = renderMarkdown(text);
                 scrollToBottom();
             },
-            error(text) { bubble.innerHTML = `<span style="color:var(--os-red);">${escapeHtml(text)}</span>`; },
+            error(text) {
+                if (loadingEl) loadingEl.remove();
+                bubble.innerHTML = `<span style="color:var(--os-red);">${escapeHtml(text)}</span>`;
+            },
         };
     }
 
@@ -456,7 +464,7 @@
             }
         };
 
-        const doRequest = async (settings) => {
+        const doRequest = async (settings, retryCount) => {
             if (currentId !== apiRequestId) return; // 过期请求，静默丢弃
             if (!settings.apiUrl || !settings.apiKey || !settings.model) {
                 callback(new Error(i18n('errorNoSettings')));
@@ -476,12 +484,20 @@
                 thinking: { type: 'enabled' },
             };
 
-            const port = chrome.runtime.connect({ name: 'api-stream' });
+            let port;
+            try {
+                port = chrome.runtime.connect({ name: 'api-stream' });
+            } catch (_) {
+                callback(new Error(i18n('errorNetworkFailed')));
+                return;
+            }
             activeApiPort = port;
 
-            let accText = '', accThinking = '';
+            let accText = '', accThinking = '', swResponded = false;
+            const maxRetries = 2;
 
             port.onMessage.addListener((msg) => {
+                swResponded = true;
                 if (msg.type === 'chunk') {
                     if (msg.deltaText) accText += msg.deltaText;
                     if (msg.deltaThinking) accThinking += msg.deltaThinking;
@@ -494,9 +510,14 @@
             });
 
             port.onDisconnect.addListener(() => {
-                if (!resolved) {
-                    resolve('error', { error: i18n('errorRequestCancelled') });
+                if (resolved) return;
+                // SW 未响应可能是冷启动延迟，自动重试
+                if (!swResponded && (retryCount || 0) < maxRetries) {
+                    activeApiPort = null;
+                    setTimeout(() => doRequest(settings, (retryCount || 0) + 1), 300);
+                    return;
                 }
+                resolve('error', { error: i18n('errorRequestCancelled') });
             });
 
             port.postMessage({
@@ -508,9 +529,9 @@
         };
 
         if (s) {
-            doRequest(s);
+            doRequest(s, 0);
         } else {
-            getSettings().then(doRequest);
+            getSettings().then(s => doRequest(s, 0));
         }
     }
 
@@ -527,11 +548,12 @@
         const s = await getSettings();
         if (!s.apiUrl || !s.apiKey || !s.model) {
             appendErrorMessage(i18n('errorNoSettingsSidebar'));
+            requestPending = false;
             return;
         }
         const activePrompt = await getActivePromptText(s);
         const text = (promptText || inputEl.value.trim() || activePrompt || i18n('defaultPromptText'));
-        if (!text && !pendingImageData) return;
+        if (!text && !pendingImageData) { requestPending = false; return; }
 
         const userContent = [];
         if (pendingImageData) {
@@ -545,12 +567,14 @@
         inputEl.style.height = 'auto';
         inputEl.focus();
         sendBtn.disabled = true;
+        requestPending = true;
 
         const streamBubble = createStreamingBubble();
         callAPI(userContent,
             (chunkText, thinking) => { streamBubble.update(chunkText, thinking); },
             (err, reply, thinking) => {
                 sendBtn.disabled = false;
+                requestPending = false;
                 if (err) streamBubble.error(err.message || String(err));
                 else if (reply) streamBubble.update(reply, thinking);
             },
@@ -558,9 +582,10 @@
         );
     }
 
+    let requestPending = false;
     sendBtn.addEventListener('click', () => sendMessage());
     inputEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+        if (e.key === 'Enter' && !e.shiftKey && !requestPending) { e.preventDefault(); sendMessage(); }
     });
     inputEl.addEventListener('input', () => {
         inputEl.style.height = 'auto';

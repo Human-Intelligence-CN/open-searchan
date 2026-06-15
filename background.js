@@ -43,7 +43,7 @@ chrome.runtime.onConnect.addListener((port) => {
 
         // 每个请求使用独立的 AbortController，防止并发覆盖
         const abortController = new AbortController();
-        const timeoutId = setTimeout(() => abortController.abort(), 120000);
+        const timeoutId = setTimeout(() => abortController.abort(), 180000);
 
         // disconnect 时仅取消当前请求
         const onDisconnect = () => {

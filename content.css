@@ -249,6 +249,17 @@ body.os-light {
     border-left: 2px solid var(--os-border);
 }
 
+/* 等待动画（气泡内三点脉冲） */
+.os-loading-dots {
+    animation: osDotPulse 1.5s ease-in-out infinite;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+@keyframes osDotPulse {
+    0%, 100% { opacity: 0.2; }
+    50%      { opacity: 1.0; }
+}
+
 /* 加载指示器 */
 .os-loading {
     display: flex;
