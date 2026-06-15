@@ -45,6 +45,7 @@
   "errorInvalidUrl": { "message": "API 地址格式无效，请检查后重试" },
   "errorNetworkFailed": { "message": "网络请求失败，请检查 API 地址和网络连接" },
   "errorRequestCancelled": { "message": "请求中断，请重试" },
+  "errorResponseTooLarge": { "message": "API 响应过大（超过 10MB），已被截断" },
   "loadingDots": { "message": "..." },
 
   "settingsSaved": { "message": "✅ 设置已保存" },
@@ -52,8 +53,8 @@
 
   "systemPrompt": { "message": "You are Open Searchan, an AI assistant developed by singal-人类智慧研究社, focusing on identify image and response. Today is __DATE__.\n\n请始终使用中文回复。使用 Markdown 格式组织内容。数学表达式使用 LaTeX：行内 $...$，块级 $$...$$。" },
 
-  "disclaimerTitle": { "message": "Open Searchan v1.5.0" },
-  "disclaimerText": { "message": "<b>Open Searchan v1.5.0</b><p>© 2026 singal. All rights reserved.</p><p style=\"margin-top:8px;\">免责声明：本工具仅供学习与研究用途。使用者应自行承担使用风险，开发者不对因使用本工具而产生的任何损失或法律责任负责。</p>" },
+  "disclaimerTitle": { "message": "Open Searchan v1.5.1" },
+  "disclaimerText": { "message": "<b>Open Searchan v1.5.1</b><p>© 2026 singal. All rights reserved.</p><p style=\"margin-top:8px;\">免责声明：本工具仅供学习与研究用途。使用者应自行承担使用风险，开发者不对因使用本工具而产生的任何损失或法律责任负责。</p>" },
 
   "promptPlaceholder": { "message": "提示词 $1（留空则跳过）" },
 

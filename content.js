@@ -34,7 +34,7 @@
             if (obj.apiKey !== undefined) map.os_api_key = obj.apiKey;
             if (obj.model !== undefined) map.os_model = obj.model;
             if (obj.maxTokens !== undefined) {
-                map.os_max_tokens = String(Math.max(64, parseInt(obj.maxTokens) || 1024));
+                map.os_max_tokens = String(Math.max(64, parseInt(obj.maxTokens, 10) || 1024));
             }
             if (obj.theme !== undefined) map.os_theme = obj.theme;
             if (obj.prompts !== undefined) {
@@ -165,7 +165,7 @@
             prompts.push(input ? input.value.trim() : '');
         }
         const radio = sidebar.querySelector('input[name="os-prompt-active"]:checked');
-        if (radio) active = parseInt(radio.value);
+        if (radio) active = parseInt(radio.value, 10);
         return { prompts, active };
     }
 
@@ -174,6 +174,10 @@
 
     function resetConversation() {
         abortActiveRequest();
+        apiRequestId++;      // 使过期重试静默退出
+        requestCounter++;    // 使过期回调跳过共享状态修改
+        requestPending = false;
+        sendBtn.disabled = false;
         conversation = [];
         messagesEl.querySelectorAll('.os-msg, .os-loading').forEach(el => el.remove());
         if (!messagesEl.querySelector('.os-empty')) {
@@ -429,6 +433,7 @@
     // ========== API 调用 (Port 连接 → Service Worker 代发，绕过 CORS) ==========
     let activeApiPort = null;
     let apiRequestId = 0;
+    let requestCounter = 0; // 用于回调去重，防止过期回调修改共享状态
 
     function abortActiveRequest() {
         if (activeApiPort) {
@@ -461,11 +466,8 @@
         };
 
         const doRequest = async (settings, retryCount) => {
-            // 过期请求：已被新请求取代，通知上层清理 UI 状态
-            if (currentId !== apiRequestId) {
-                callback(new Error(i18n('errorRequestCancelled')));
-                return;
-            }
+            // 过期请求：静默丢弃（上层已通过 resetConversation 或新请求清理状态）
+            if (currentId !== apiRequestId) return;
             if (!settings.apiUrl || !settings.apiKey || !settings.model) {
                 callback(new Error(i18n('errorNoSettings')));
                 return;
@@ -499,6 +501,7 @@
             port.onMessage.addListener((msg) => {
                 swResponded = true;
                 if (msg.type === 'chunk') {
+                    if (resolved) return; // done/error 已发送，忽略延迟到达的 chunk
                     if (msg.deltaText) accText += msg.deltaText;
                     if (msg.deltaThinking) accThinking += msg.deltaThinking;
                     onChunk(accText, accThinking);
@@ -551,14 +554,25 @@
 
     async function sendMessage(promptText) {
         if (requestPending) return;
+        requestPending = true;
+        sendBtn.disabled = true;
+        requestCounter++;
+        const myReqId = requestCounter;
+
         const s = await getSettings();
         if (!s.apiUrl || !s.apiKey || !s.model) {
             appendErrorMessage(i18n('errorNoSettingsSidebar'));
+            requestPending = false;
+            sendBtn.disabled = false;
             return;
         }
         const activePrompt = await getActivePromptText(s);
         const text = (promptText || inputEl.value.trim() || activePrompt || i18n('defaultPromptText'));
-        if (!text && !pendingImageData) return;
+        if (!text && !pendingImageData) {
+            requestPending = false;
+            sendBtn.disabled = false;
+            return;
+        }
 
         const userContent = [];
         if (pendingImageData) {
@@ -571,13 +585,12 @@
         inputEl.value = '';
         inputEl.style.height = 'auto';
         inputEl.focus();
-        sendBtn.disabled = true;
-        requestPending = true;
 
         const streamBubble = createStreamingBubble();
         callAPI(userContent,
             (chunkText, thinking) => { streamBubble.update(chunkText, thinking); },
             (err, reply, thinking) => {
+                if (myReqId !== requestCounter) return; // 过期回调，跳过共享状态修改
                 sendBtn.disabled = false;
                 requestPending = false;
                 if (err) streamBubble.error(err.message || String(err));

@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.5.1] — 2026-06-15
+
+### 修复
+
+- `sendMessage` 异步间隙竞态：`requestPending`/`sendBtn.disabled` 前置到 `await` 之前
+- 新增 `requestCounter` 回调去重机制，防止过期回调错误清除新请求的共享状态
+- `resetConversation` 补充重置 `requestPending`/`sendBtn.disabled`，递增 `apiRequestId` 防僵尸重试
+- `port.onMessage` chunk 处理增加 `resolved` 检查，防止 late chunk 覆盖已完成回复
+- `parseInt` 基数补充：`storage.set` 和 `collectPrompts` 中遗漏的 `radix=10`
+- `concatChunks` 超限错误改用 i18n，新增 `errorResponseTooLarge` 翻译键
+
+### 优化
+
+- `doRequest` 过期检查改回静默返回，`resetConversation` 已独立处理 UI 清理
+
 ## [1.5.0] — 2026-06-15
 
 ### 修复

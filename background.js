@@ -137,8 +137,8 @@ chrome.runtime.onConnect.addListener((port) => {
                     }
                 } catch (e) {
                     // 区分 concatChunks 超限错误和 JSON 解析错误
-                    const msg = e instanceof Error && e.message
-                        ? e.message
+                    const msg = e instanceof Error && e.message === 'Response exceeds 10MB size limit'
+                        ? chrome.i18n.getMessage('errorResponseTooLarge')
                         : chrome.i18n.getMessage('errorApiEmpty');
                     port.postMessage({ type: 'error', error: msg });
                 }
