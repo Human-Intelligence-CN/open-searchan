@@ -11,7 +11,7 @@ chrome.commands.onCommand.addListener((cmd, tab) => {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type !== 'capture') return;
     if (!sender.tab?.windowId) {
-        sendResponse({ error: '无法获取标签页信息，请刷新页面' });
+        sendResponse({ error: chrome.i18n.getMessage('errorNoTabInfo') });
         return;
     }
     chrome.tabs.captureVisibleTab(sender.tab.windowId, { format: 'png' }, (dataUrl) => {

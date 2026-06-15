@@ -72,25 +72,6 @@
     color: var(--os-pink);
     letter-spacing: 0.5px;
 }
-.os-header-actions {
-    display: flex;
-    gap: 6px;
-}
-.os-header-btn {
-    background: none;
-    border: none;
-    color: var(--os-muted);
-    cursor: pointer;
-    font-size: 18px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    line-height: 1;
-    transition: color 0.15s, background 0.15s;
-}
-.os-header-btn:hover {
-    color: var(--os-text);
-    background: var(--os-surface);
-}
 .os-theme-btn {
     background: none;
     border: 1px solid var(--os-border);
@@ -250,22 +231,6 @@
     padding: 10px 14px;
     color: var(--os-muted);
     font-size: 13px;
-}
-.os-loading-dots span {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--os-muted);
-    margin: 0 2px;
-    animation: osDotBounce 1.4s infinite ease-in-out both;
-}
-.os-loading-dots span:nth-child(1) { animation-delay: -0.32s; }
-.os-loading-dots span:nth-child(2) { animation-delay: -0.16s; }
-.os-loading-dots span:nth-child(3) { animation-delay: 0s; }
-@keyframes osDotBounce {
-    0%, 80%, 100% { transform: scale(0); }
-    40% { transform: scale(1); }
 }
 
 /* 输入区域 */

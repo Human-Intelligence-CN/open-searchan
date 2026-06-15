@@ -3,6 +3,9 @@
     const SIDEBAR_WIDTH = 400;
     const MAX_IMAGE_DIM = 1920;
 
+    // i18n 快捷函数
+    const i18n = (k, ...s) => chrome.i18n.getMessage(k, s.length ? s : undefined);
+
     // ========== Storage 封装 ==========
     const storage = {
         _cache: null,
@@ -44,38 +47,45 @@
         },
     };
 
+    // 监听 storage 变更以清除缓存（多页面同步）
+    chrome.storage.onChanged.addListener((changes) => {
+        for (const key of Object.keys(changes)) {
+            if (key.startsWith('os_')) { storage._cache = null; break; }
+        }
+    });
+
     // ========== DOM 构建 ==========
     const sidebar = document.createElement('div');
     sidebar.id = 'os-sidebar';
     sidebar.className = 'os-hidden os-light';
     sidebar.innerHTML = `
     <div class="os-header">
-      <span class="os-header-title">&#128269; OPEN SEARCHAN</span>
-      <button class="os-theme-btn" title="切换亮色/暗色模式">&#9728;&#65039;</button>
+      <span class="os-header-title">${i18n('sidebarTitle')}</span>
+      <button class="os-theme-btn" title="${i18n('themeToggleTitle')}">${i18n('themeDarkIcon')}</button>
     </div>
     <div class="os-tabs">
-      <div class="os-tab os-active" data-tab="chat">&#128172; 对话</div>
-      <div class="os-tab" data-tab="settings">&#9881;&#65039; 设置</div>
+      <div class="os-tab os-active" data-tab="chat">${i18n('tabChat')}</div>
+      <div class="os-tab" data-tab="settings">${i18n('tabSettings')}</div>
     </div>
     <div class="os-panel os-active" data-panel="chat">
       <div class="os-chat-messages">
-        <div class="os-empty">Alt+Z 选区截图并自动发送<br>Alt+X 切换侧边栏 &middot; Alt+C 清空对话</div>
+        <div class="os-empty">${i18n('emptyState')}</div>
       </div>
       <div class="os-chat-input-area">
-        <textarea class="os-chat-input" placeholder="输入追问… (Enter 发送, Shift+Enter 换行)" rows="1"></textarea>
-        <button class="os-chat-send-btn">发送</button>
+        <textarea class="os-chat-input" placeholder="${i18n('inputPlaceholder')}" rows="1"></textarea>
+        <button class="os-chat-send-btn">${i18n('sendButton')}</button>
       </div>
     </div>
     <div class="os-panel" data-panel="settings">
       <form class="os-settings-form">
-        <div class="os-form-group"><label>API 地址</label><input type="url" id="os-api-url" placeholder="https://api.xiaomimimo.com/v1/chat/completions" autocomplete="off"><div class="os-hint">OpenAI 兼容的 Chat Completions 端点</div></div>
-        <div class="os-form-group"><label>API Key <button type="button" class="os-clear-key" title="清除 API Key">&#128465;</button></label><input type="text" id="os-api-key" placeholder="sk-..." autocomplete="off"><div class="os-hint">仅保存在本地浏览器中</div></div>
-        <div class="os-form-group"><label>模型名称</label><input type="text" id="os-model" placeholder="mimo-v2.5" autocomplete="off"><div class="os-hint">例如 mimo-v2.5, mimo-v2</div></div>
-        <div class="os-form-group"><label>默认提示词（选择一个启用）</label><div class="os-prompt-list" id="os-prompt-list"></div><div class="os-hint">截图后自动使用选中的提示词，空提示词不生效</div></div>
-        <div class="os-form-group"><label>最大输出 Token</label><input type="number" id="os-max-tokens" placeholder="1024" min="64" max="16384" autocomplete="off"><div class="os-hint">AI 单次回复最大 token 数</div></div>
-        <button type="submit" class="os-save-btn">&#128190; 保存设置</button>
+        <div class="os-form-group"><label>${i18n('settingsApiUrlLabel')}</label><input type="url" id="os-api-url" placeholder="https://api.xiaomimimo.com/v1/chat/completions" autocomplete="off"><div class="os-hint">${i18n('settingsApiUrlHint')}</div></div>
+        <div class="os-form-group"><label>${i18n('settingsApiKeyLabel')} <button type="button" class="os-clear-key" title="${i18n('settingsClearKeyTitle')}">&#128465;</button></label><input type="text" id="os-api-key" placeholder="sk-..." autocomplete="off"><div class="os-hint">${i18n('settingsApiKeyHint')}</div></div>
+        <div class="os-form-group"><label>${i18n('settingsModelLabel')}</label><input type="text" id="os-model" placeholder="mimo-v2.5" autocomplete="off"><div class="os-hint">${i18n('settingsModelHint')}</div></div>
+        <div class="os-form-group"><label>${i18n('settingsPromptLabel')}</label><div class="os-prompt-list" id="os-prompt-list"></div><div class="os-hint">${i18n('settingsPromptHint')}</div></div>
+        <div class="os-form-group"><label>${i18n('settingsMaxTokensLabel')}</label><input type="number" id="os-max-tokens" placeholder="1024" min="64" max="16384" autocomplete="off"><div class="os-hint">${i18n('settingsMaxTokensHint')}</div></div>
+        <button type="submit" class="os-save-btn">${i18n('settingsSaveButton')}</button>
         <div class="os-save-msg"></div>
-        <div class="os-disclaimer"><p><b>Open Searchan v1.1</b></p><p>&copy; 2026 singal. All rights reserved.</p><p style="margin-top:8px;">免责声明：本工具仅供学习与研究用途。使用者应自行承担使用风险，开发者不对因使用本工具而产生的任何损失或法律责任负责。</p></div>
+        <div class="os-disclaimer">${i18n('disclaimerText')}</div>
       </form>
     </div>
   `;
@@ -83,7 +93,7 @@
     const toggleBtn = document.createElement('div');
     toggleBtn.id = 'os-toggle-btn';
     toggleBtn.textContent = '◀';
-    toggleBtn.title = '收起/展开侧边栏';
+    toggleBtn.title = i18n('toggleButtonTitle');
 
     const overlay = document.createElement('div');
     overlay.id = 'os-overlay';
@@ -93,7 +103,7 @@
     <div class="os-overlay-piece" id="os-oleft"></div>
     <div class="os-overlay-piece" id="os-oright"></div>
     <div id="os-selection-border"></div>
-    <div id="os-overlay-hint">拖拽鼠标选择截图区域 · Esc 取消</div>
+    <div id="os-overlay-hint">${i18n('overlayHint')}</div>
   `;
 
     document.body.appendChild(sidebar);
@@ -136,7 +146,7 @@
             const div = document.createElement('div');
             div.className = 'os-prompt-row';
             div.innerHTML = `
-        <input type="text" class="os-prompt-input" id="os-prompt-${i + 1}" placeholder="提示词 ${i + 1}（留空则跳过）" value="${escapeHtml(prompts[i])}" autocomplete="off">
+        <input type="text" class="os-prompt-input" id="os-prompt-${i + 1}" placeholder="${i18n('promptPlaceholder', String(i + 1))}" value="${escapeHtml(prompts[i])}" autocomplete="off">
         <input type="radio" name="os-prompt-active" value="${i + 1}" ${(i + 1 === active) ? 'checked' : ''}>
       `;
             container.appendChild(div);
@@ -165,7 +175,7 @@
         if (!messagesEl.querySelector('.os-empty')) {
             const div = document.createElement('div');
             div.className = 'os-empty';
-            div.innerHTML = 'Alt+Z 选区截图并自动发送<br>Alt+X 切换侧边栏 &middot; Alt+C 清空对话';
+            div.innerHTML = i18n('emptyState');
             messagesEl.appendChild(div);
         }
     }
@@ -199,7 +209,7 @@
     const themeBtn = sidebar.querySelector('.os-theme-btn');
     function setTheme(light) {
         sidebar.classList.toggle('os-light', light);
-        themeBtn.textContent = light ? '☀️' : '🌙';
+        themeBtn.textContent = light ? i18n('themeLightIcon') : i18n('themeDarkIcon');
         storage.set({ theme: light ? 'light' : 'dark' });
     }
     themeBtn.addEventListener('click', () => setTheme(!sidebar.classList.contains('os-light')));
@@ -210,23 +220,29 @@
         if (el) el.remove();
     }
 
+    const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
     function escapeHtml(str) {
-        const d = document.createElement('div');
-        d.textContent = str;
-        return d.innerHTML;
+        return str.replace(/[&<>"']/g, m => ESCAPE_MAP[m]);
     }
 
-    // XSS 防护：移除危险标签和事件属性
+    // XSS 防护：移除危险标签、事件属性、javascript: 协议和 SVG 攻击向量
     function sanitizeHTML(html) {
         const div = document.createElement('div');
         div.innerHTML = html;
-        // 移除危险标签
-        div.querySelectorAll('script,iframe,object,embed,applet,meta,link,style,base').forEach(el => el.remove());
-        // 移除事件属性和 javascript: 协议
+        // 移除危险标签（含 SVG 攻击向量）
+        div.querySelectorAll('script,iframe,object,embed,applet,meta,link,style,base,'
+            + 'animate,set,animateMotion,animateTransform,'
+            + 'filter,pattern,use[href]').forEach(el => el.remove());
+        // 移除事件属性、javascript: 协议
+        const DANGEROUS_ATTRS = ['href', 'src', 'xlink:href', 'action', 'formaction', 'data'];
         const walk = (node) => {
             if (node.nodeType === 1) {
                 for (const attr of [...node.attributes]) {
-                    if (attr.name.startsWith('on') || /^javascript:/i.test(attr.value)) {
+                    const name = attr.name.toLowerCase();
+                    const val = attr.value;
+                    if (name.startsWith('on')
+                        || /^javascript:/i.test(val)
+                        || (DANGEROUS_ATTRS.includes(name) && /^javascript:/i.test(val))) {
                         node.removeAttribute(attr.name);
                     }
                 }
@@ -265,8 +281,8 @@
         removeEmptyState();
         const div = document.createElement('div');
         div.className = 'os-msg os-msg-user';
-        let h = '<div class="os-msg-label">你</div><div class="os-msg-bubble">';
-        if (imageSrc) h += `<img src="${imageSrc}" alt="截图">`;
+        let h = `<div class="os-msg-label">${i18n('youLabel')}</div><div class="os-msg-bubble">`;
+        if (imageSrc) h += `<img src="${imageSrc}" alt="${i18n('youLabel')}">`;
         h += `<span class="os-prompt-text">${escapeHtml(promptText)}</span></div>`;
         div.innerHTML = h;
         const img = div.querySelector('img');
@@ -281,7 +297,7 @@
         const div = document.createElement('div');
         div.className = 'os-msg os-msg-ai';
         div.innerHTML = '<div class="os-msg-label">AI</div>'
-            + '<div class="os-thinking-toggle" style="display:none;cursor:pointer;font-size:11px;color:var(--os-muted);padding:2px 8px;user-select:none;">💭 思考过程 ▸</div>'
+            + `<div class="os-thinking-toggle" style="display:none;cursor:pointer;font-size:11px;color:var(--os-muted);padding:2px 8px;user-select:none;">${i18n('thinkingCollapsed')}</div>`
             + '<div class="os-thinking-content" style="display:none;font-size:12px;color:var(--os-text-dim);background:var(--os-header);padding:8px 12px;border-radius:8px;margin-bottom:6px;white-space:pre-wrap;border-left:2px solid var(--os-border);"></div>'
             + '<div class="os-msg-bubble"></div>';
         const bubble = div.querySelector('.os-msg-bubble');
@@ -290,7 +306,7 @@
         toggle.addEventListener('click', () => {
             const shown = thinkingEl.style.display !== 'none';
             thinkingEl.style.display = shown ? 'none' : 'block';
-            toggle.textContent = shown ? '💭 思考过程 ▸' : '💭 思考过程 ▾';
+            toggle.textContent = shown ? i18n('thinkingCollapsed') : i18n('thinkingExpanded');
         });
         messagesEl.appendChild(div);
         let lastThinking = '';
@@ -317,7 +333,7 @@
         removeLoadingIndicator();
         const div = document.createElement('div');
         div.className = 'os-msg os-msg-ai';
-        div.innerHTML = `<div class="os-msg-label">错误</div><div class="os-msg-bubble" style="color:var(--os-red);">${escapeHtml(errorText)}</div>`;
+        div.innerHTML = `<div class="os-msg-label">${i18n('errorLabel')}</div><div class="os-msg-bubble" style="color:var(--os-red);">${escapeHtml(errorText)}</div>`;
         messagesEl.appendChild(div);
         scrollToBottom();
     }
@@ -325,8 +341,8 @@
     // ========== 截图 (chrome.tabs.captureVisibleTab) ==========
     async function captureScreen() {
         if (!chrome.runtime?.id) {
-            console.error('[OS] Extension context invalidated, page refresh needed');
-            throw new Error('扩展已更新，请刷新页面后重试');
+            console.error('[OS] Extension context invalidated');
+            throw new Error(i18n('errorContextInvalidated'));
         }
         return new Promise((resolve, reject) => {
             try {
@@ -353,26 +369,46 @@
                     } else if (resp && resp.error) {
                         reject(new Error(resp.error));
                     } else {
-                        reject(new Error('截图返回为空'));
+                        reject(new Error(i18n('errorApiEmpty')));
                     }
                 });
             } catch (e) {
-                reject(new Error('扩展已更新，请刷新页面后重试'));
+                reject(new Error(i18n('errorContextInvalidated')));
             }
         });
     }
 
-    // ========== API 调用 (流式) ==========
+    // ========== API 调用 (fetch + ReadableStream，支持取消) ==========
+    let activeAbortController = null;
+
+    function abortActiveRequest() {
+        if (activeAbortController) {
+            activeAbortController.abort();
+            activeAbortController = null;
+        }
+    }
+
     function callAPI(userContent, onChunk, callback) {
-        getSettings().then(s => {
+        // 取消前一个请求
+        abortActiveRequest();
+        const abortController = new AbortController();
+        activeAbortController = abortController;
+
+        // 超时处理（120s）
+        const timeoutId = setTimeout(() => abortController.abort(), 120000);
+
+        getSettings().then(async (s) => {
             if (!s.apiUrl || !s.apiKey || !s.model) {
-                callback(new Error('请先在设置面板中填写 API 地址、API Key 和模型名称'));
+                clearTimeout(timeoutId);
+                activeAbortController = null;
+                callback(new Error(i18n('errorNoSettings')));
                 return;
             }
             const userMsg = { role: 'user', content: userContent };
+            const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             const systemMsg = {
                 role: 'system',
-                content: `You are Open Searchan, an AI assistant developed by singal-人类智慧研究社, focusing on identify image and response. Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. \n\n请始终使用中文回复。使用 Markdown 格式组织内容。数学表达式使用 LaTeX：行内 $...$，块级 $$...$$。`,
+                content: i18n('systemPrompt').replace('$DATE$', dateStr),
             };
             const messages = [systemMsg, ...conversation, userMsg];
             const body = {
@@ -383,58 +419,105 @@
                 thinking: { type: 'enabled' },
             };
 
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', s.apiUrl);
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.setRequestHeader('api-key', s.apiKey);
-            let fullText = '', thinkingText = '', lastIdx = 0;
+            try {
+                const response = await fetch(s.apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'api-key': s.apiKey,
+                    },
+                    body: JSON.stringify(body),
+                    signal: abortController.signal,
+                });
 
-            xhr.onprogress = function () {
-                const chunk = xhr.responseText.slice(lastIdx);
-                lastIdx = xhr.responseText.length;
-                const lines = chunk.split('\n');
-                for (const line of lines) {
-                    if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    let err = `HTTP ${response.status}`;
                     try {
-                        const delta = JSON.parse(line.slice(6)).choices?.[0]?.delta;
-                        if (delta?.reasoning_content) { thinkingText += delta.reasoning_content; onChunk(fullText, thinkingText); }
-                        if (delta?.content) { fullText += delta.content; onChunk(fullText, thinkingText); }
-                    } catch (_) { }
+                        const data = await response.json();
+                        err = data.error?.message || err;
+                    } catch (_) {}
+                    activeAbortController = null;
+                    callback(new Error(err + '\n\n' + s.apiUrl));
+                    return;
                 }
-            };
 
-            xhr.onload = function () {
-                if (xhr.status === 200 && fullText) {
+                // 流式读取 SSE
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = '', thinkingText = '', buffer = '';
+                const rawChunks = [];
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    rawChunks.push(value);
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
+                        try {
+                            const delta = JSON.parse(line.slice(6)).choices?.[0]?.delta;
+                            if (delta?.reasoning_content) { thinkingText += delta.reasoning_content; onChunk(fullText, thinkingText); }
+                            if (delta?.content) { fullText += delta.content; onChunk(fullText, thinkingText); }
+                        } catch (_) {}
+                    }
+                }
+
+                // 处理尾部残留行
+                buffer += decoder.decode(); // flush decoder
+                if (buffer.startsWith('data: ') && buffer !== 'data: [DONE]') {
+                    try {
+                        const delta = JSON.parse(buffer.slice(6)).choices?.[0]?.delta;
+                        if (delta?.reasoning_content) thinkingText += delta.reasoning_content;
+                        if (delta?.content) fullText += delta.content;
+                        onChunk(fullText, thinkingText);
+                    } catch (_) {}
+                }
+
+                activeAbortController = null;
+                if (fullText) {
                     conversation.push(userMsg);
                     conversation.push({ role: 'assistant', content: fullText, thinking: thinkingText || undefined });
                     callback(null, fullText, thinkingText);
-                } else if (xhr.status === 200) {
+                } else {
+                    // 非流式兼容：尝试解析完整 JSON
                     try {
-                        const data = JSON.parse(xhr.responseText);
+                        const all = rawChunks.length
+                            ? new TextDecoder().decode(new Uint8Array(rawChunks.reduce((a, c) => { const t = new Uint8Array(a.length + c.length); t.set(a); t.set(c, a.length); return t; }, new Uint8Array(0))))
+                            : '';
+                        const data = JSON.parse(all);
                         const msg = data.choices?.[0]?.message;
                         const reply = msg?.content;
                         if (reply) {
                             conversation.push(userMsg);
                             conversation.push({ role: 'assistant', content: reply, thinking: msg?.reasoning_content });
                             callback(null, reply, msg?.reasoning_content);
-                        } else { callback(new Error('API 返回为空')); }
-                    } catch (e) { callback(new Error('解析失败: ' + e.message)); }
-                } else {
-                    let err = `HTTP ${xhr.status}`;
-                    try { err = JSON.parse(xhr.responseText).error?.message || err; } catch (_) { }
-                    callback(new Error(err + '\n\n请求地址: ' + s.apiUrl));
+                        } else {
+                            callback(new Error(i18n('errorApiEmpty')));
+                        }
+                    } catch (_) {
+                        callback(new Error(i18n('errorApiEmpty')));
+                    }
                 }
-            };
-
-            xhr.onerror = function () {
-                callback(new Error('网络请求失败\n请求地址: ' + s.apiUrl));
-            };
-            xhr.timeout = 120000;
-            xhr.ontimeout = function () {
-                callback(new Error('请求超时 (120s)'));
-            };
-            xhr.send(JSON.stringify(body));
+            } catch (e) {
+                clearTimeout(timeoutId);
+                if (e.name === 'AbortError') {
+                    // 被取消或超时，静默处理
+                    return;
+                }
+                activeAbortController = null;
+                callback(new Error(i18n('errorNetworkFailed', s.apiUrl)));
+            }
         });
+    }
+
+    // ========== 辅助函数 ==========
+    async function getActivePromptText() {
+        const s = await getSettings();
+        return s.prompts[s.promptActive - 1] || '';
     }
 
     // ========== 发送消息 ==========
@@ -443,11 +526,11 @@
     async function sendMessage(promptText) {
         const s = await getSettings();
         if (!s.apiUrl || !s.apiKey || !s.model) {
-            appendErrorMessage('请先在右侧"设置"面板中填写 API 地址、API Key 和模型名称');
+            appendErrorMessage(i18n('errorNoSettingsSidebar'));
             return;
         }
-        const activePrompt = s.prompts[s.promptActive - 1] || '';
-        const text = (promptText || inputEl.value.trim() || activePrompt || '请描述这张图片');
+        const activePrompt = await getActivePromptText();
+        const text = (promptText || inputEl.value.trim() || activePrompt || i18n('defaultPromptText'));
         if (!text && !pendingImageData) return;
 
         const userContent = [];
@@ -493,14 +576,14 @@
         const maxTokens = document.getElementById('os-max-tokens').value.trim();
         const { prompts, active } = collectPrompts();
         await saveSettings(url, key, model, prompts, active, maxTokens);
-        saveMsgEl.textContent = '✅ 设置已保存';
+        saveMsgEl.textContent = i18n('settingsSaved');
         setTimeout(() => { saveMsgEl.textContent = ''; }, 2000);
     });
 
     sidebar.querySelector('.os-clear-key')?.addEventListener('click', async () => {
         document.getElementById('os-api-key').value = '';
         await storage.set({ apiKey: '' });
-        saveMsgEl.textContent = '🗑 API Key 已清除';
+        saveMsgEl.textContent = i18n('apiKeyCleared');
         setTimeout(() => { saveMsgEl.textContent = ''; }, 2000);
     });
 
@@ -594,13 +677,13 @@
         const loadingDiv = document.createElement('div');
         loadingDiv.className = 'os-loading';
         loadingDiv.id = 'os-capture-loading';
-        loadingDiv.innerHTML = '<span>&#128247; 截图处理中...</span>';
+        loadingDiv.innerHTML = `<span>${i18n('captureLoading')}</span>`;
         messagesEl.appendChild(loadingDiv);
 
         try {
             const result = await captureScreen();
             if (!result) {
-                appendErrorMessage('截图失败：请确保已授予扩展权限，或刷新页面后重试');
+                appendErrorMessage(i18n('errorCaptureNoPermission'));
                 return;
             }
             const { canvas: fullCanvas, offsetX, offsetY, scaleX, scaleY } = result;
@@ -627,18 +710,16 @@
             sidebar.querySelector('[data-panel="settings"]').classList.remove('os-active');
             conversation = [];
             pendingImageData = base64;
-            const s = await getSettings();
-            const activePrompt = s.prompts[s.promptActive - 1] || '请描述这张图片';
+            const activePrompt = (await getActivePromptText()) || i18n('defaultPromptText');
             sendMessage(activePrompt);
         } catch (err) {
             const capLoading = document.getElementById('os-capture-loading');
             if (capLoading) capLoading.remove();
-            appendErrorMessage('截图失败: ' + (err.message || String(err)));
+            appendErrorMessage(i18n('errorCaptureFailed', err.message || String(err)));
         }
     }
 
     // ========== 快捷键 ==========
-    // 快捷键：Alt+X 侧边栏，Alt+C 清空对话
     document.addEventListener('keydown', (e) => {
         if (e.altKey && (e.key === 'x' || e.key === 'X')) {
             e.preventDefault(); e.stopPropagation(); toggleSidebar(); return;
@@ -648,8 +729,7 @@
         }
     });
 
-    // Alt+Z 截图 → 由 background 通过 manifest commands 触发，
-    // 这样 activeTab 权限才能激活
+    // Alt+Z 截图 → 由 background 通过 manifest commands 触发
     chrome.runtime.onMessage.addListener((msg) => {
         if (msg.type === 'start_screenshot') startScreenshot();
     });
@@ -659,10 +739,10 @@
         const s = await getSettings();
         setTheme(s.theme !== 'dark');
         hideSidebar();
-        console.log('[OPEN SEARCHAN] 截图助手已就绪 (扩展版)');
-        console.log('  Alt+Z  开始选区截图 (扩展命令触发)');
-        console.log('  Alt+X  切换侧边栏');
-        console.log('  Alt+C  清空对话');
+        console.log(i18n('consoleReady'));
+        console.log(i18n('consoleHelpZ'));
+        console.log(i18n('consoleHelpX'));
+        console.log(i18n('consoleHelpC'));
     }
 
     init();

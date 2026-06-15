@@ -1,0 +1,63 @@
+{
+  "extName": { "message": "Open Searchan 开放识图酱" },
+  "extDesc": { "message": "Alt+Z 框选截图，AI 识图、翻译、解答三位一体" },
+  "screenshotCommandDesc": { "message": "选区截图并发送给 AI" },
+
+  "sidebarTitle": { "message": "🔍 OPEN SEARCHAN" },
+  "themeToggleTitle": { "message": "切换亮色/暗色模式" },
+  "tabChat": { "message": "💬 对话" },
+  "tabSettings": { "message": "⚙️ 设置" },
+  "emptyState": { "message": "Alt+Z 选区截图并自动发送<br>Alt+X 切换侧边栏 · Alt+C 清空对话" },
+  "inputPlaceholder": { "message": "输入追问… (Enter 发送, Shift+Enter 换行)" },
+  "sendButton": { "message": "发送" },
+  "toggleButtonTitle": { "message": "收起/展开侧边栏" },
+  "overlayHint": { "message": "拖拽鼠标选择截图区域 · Esc 取消" },
+  "youLabel": { "message": "你" },
+  "errorLabel": { "message": "错误" },
+  "thinkingCollapsed": { "message": "💭 思考过程 ▸" },
+  "thinkingExpanded": { "message": "💭 思考过程 ▾" },
+  "themeLightIcon": { "message": "☀️" },
+  "themeDarkIcon": { "message": "🌙" },
+  "captureLoading": { "message": "📷 截图处理中..." },
+
+  "settingsApiUrlLabel": { "message": "API 地址" },
+  "settingsApiUrlHint": { "message": "OpenAI 兼容的 Chat Completions 端点" },
+  "settingsApiKeyLabel": { "message": "API Key" },
+  "settingsClearKeyTitle": { "message": "清除 API Key" },
+  "settingsApiKeyHint": { "message": "仅保存在本地浏览器中" },
+  "settingsModelLabel": { "message": "模型名称" },
+  "settingsModelHint": { "message": "例如 mimo-v2.5, mimo-v2" },
+  "settingsPromptLabel": { "message": "默认提示词（选择一个启用）" },
+  "settingsPromptHint": { "message": "截图后自动使用选中的提示词，空提示词不生效" },
+  "settingsMaxTokensLabel": { "message": "最大输出 Token" },
+  "settingsMaxTokensHint": { "message": "AI 单次回复最大 token 数" },
+  "settingsSaveButton": { "message": "💾 保存设置" },
+
+  "errorNoSettings": { "message": "请先在设置面板中填写 API 地址、API Key 和模型名称" },
+  "errorNoSettingsSidebar": { "message": "请先在右侧「设置」面板中填写 API 地址、API Key 和模型名称" },
+  "errorNoTabInfo": { "message": "无法获取标签页信息，请刷新页面" },
+  "errorCaptureNoPermission": { "message": "截图失败：请确保已授予扩展权限，或刷新页面后重试" },
+  "errorCaptureFailed": { "message": "截图失败: $1" },
+  "errorContextInvalidated": { "message": "扩展已更新，请刷新页面后重试" },
+  "errorApiEmpty": { "message": "API 返回为空" },
+  "errorParseFailed": { "message": "解析失败: $1" },
+  "errorNetworkFailed": { "message": "网络请求失败\n请求地址: $1" },
+  "errorRequestCancelled": { "message": "请求已取消" },
+
+  "settingsSaved": { "message": "✅ 设置已保存" },
+  "apiKeyCleared": { "message": "🗑 API Key 已清除" },
+
+  "systemPrompt": { "message": "You are Open Searchan, an AI assistant developed by singal-人类智慧研究社, focusing on identify image and response. Today is $DATE$.\n\n请始终使用中文回复。使用 Markdown 格式组织内容。数学表达式使用 LaTeX：行内 $...$，块级 $$...$$。" },
+
+  "disclaimerTitle": { "message": "Open Searchan v1.1" },
+  "disclaimerText": { "message": "<b>Open Searchan v1.2.0</b><p>© 2026 singal. All rights reserved.</p><p style=\"margin-top:8px;\">免责声明：本工具仅供学习与研究用途。使用者应自行承担使用风险，开发者不对因使用本工具而产生的任何损失或法律责任负责。</p>" },
+
+  "promptPlaceholder": { "message": "提示词 $1（留空则跳过）" },
+
+  "consoleReady": { "message": "[OPEN SEARCHAN] 截图助手已就绪 (扩展版)" },
+  "consoleHelpZ": { "message": "  Alt+Z  开始选区截图 (扩展命令触发)" },
+  "consoleHelpX": { "message": "  Alt+X  切换侧边栏" },
+  "consoleHelpC": { "message": "  Alt+C  清空对话" },
+
+  "defaultPromptText": { "message": "请描述这张图片" }
+}

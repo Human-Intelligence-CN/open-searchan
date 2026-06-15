@@ -1,0 +1,63 @@
+{
+  "extName": { "message": "Open Searchan" },
+  "extDesc": { "message": "Alt+Z screenshot → AI multimodal → sidebar chat" },
+  "screenshotCommandDesc": { "message": "Capture selection and send to AI" },
+
+  "sidebarTitle": { "message": "🔍 OPEN SEARCHAN" },
+  "themeToggleTitle": { "message": "Toggle light/dark mode" },
+  "tabChat": { "message": "💬 Chat" },
+  "tabSettings": { "message": "⚙️ Settings" },
+  "emptyState": { "message": "Alt+Z to capture and send<br>Alt+X toggle sidebar · Alt+C clear chat" },
+  "inputPlaceholder": { "message": "Ask a follow-up… (Enter to send, Shift+Enter to break)" },
+  "sendButton": { "message": "Send" },
+  "toggleButtonTitle": { "message": "Collapse/Expand sidebar" },
+  "overlayHint": { "message": "Drag to select capture area · Esc to cancel" },
+  "youLabel": { "message": "You" },
+  "errorLabel": { "message": "Error" },
+  "thinkingCollapsed": { "message": "💭 Thinking ▸" },
+  "thinkingExpanded": { "message": "💭 Thinking ▾" },
+  "themeLightIcon": { "message": "☀️" },
+  "themeDarkIcon": { "message": "🌙" },
+  "captureLoading": { "message": "📷 Processing screenshot..." },
+
+  "settingsApiUrlLabel": { "message": "API URL" },
+  "settingsApiUrlHint": { "message": "OpenAI-compatible Chat Completions endpoint" },
+  "settingsApiKeyLabel": { "message": "API Key" },
+  "settingsClearKeyTitle": { "message": "Clear API Key" },
+  "settingsApiKeyHint": { "message": "Stored locally in browser only" },
+  "settingsModelLabel": { "message": "Model Name" },
+  "settingsModelHint": { "message": "e.g. mimo-v2.5, mimo-v2" },
+  "settingsPromptLabel": { "message": "Default Prompt (select one)" },
+  "settingsPromptHint": { "message": "Selected prompt will be used automatically with screenshots; empty prompts are ignored" },
+  "settingsMaxTokensLabel": { "message": "Max Output Tokens" },
+  "settingsMaxTokensHint": { "message": "Maximum tokens per AI response" },
+  "settingsSaveButton": { "message": "💾 Save Settings" },
+
+  "errorNoSettings": { "message": "Please fill in API URL, API Key, and Model Name in the Settings panel" },
+  "errorNoSettingsSidebar": { "message": "Please fill in API URL, API Key, and Model Name in the Settings panel on the right" },
+  "errorNoTabInfo": { "message": "Cannot get tab info, please refresh the page" },
+  "errorCaptureNoPermission": { "message": "Screenshot failed: please grant extension permissions, or refresh the page and try again" },
+  "errorCaptureFailed": { "message": "Screenshot failed: $1" },
+  "errorContextInvalidated": { "message": "Extension has been updated, please refresh the page and try again" },
+  "errorApiEmpty": { "message": "API returned empty response" },
+  "errorParseFailed": { "message": "Parse error: $1" },
+  "errorNetworkFailed": { "message": "Network request failed\nURL: $1" },
+  "errorRequestCancelled": { "message": "Request cancelled" },
+
+  "settingsSaved": { "message": "✅ Settings saved" },
+  "apiKeyCleared": { "message": "🗑 API Key cleared" },
+
+  "systemPrompt": { "message": "You are Open Searchan, an AI assistant developed by singal-人类智慧研究社, focusing on identify image and response. Today is $DATE$.\n\nPlease always respond in the user's language. Use Markdown for formatting. Use LaTeX for math: inline $...$, block $$...$$." },
+
+  "disclaimerTitle": { "message": "Open Searchan v1.1" },
+  "disclaimerText": { "message": "<b>Open Searchan v1.2.0</b><p>© 2026 singal. All rights reserved.</p><p style=\"margin-top:8px;\">Disclaimer: This tool is for educational and research purposes only. Users assume all risks; the developer is not liable for any loss or legal liability arising from the use of this tool.</p>" },
+
+  "promptPlaceholder": { "message": "Prompt $1 (leave empty to skip)" },
+
+  "consoleReady": { "message": "[OPEN SEARCHAN] Ready (extension mode)" },
+  "consoleHelpZ": { "message": "  Alt+Z  Start area screenshot (extension command)" },
+  "consoleHelpX": { "message": "  Alt+X  Toggle sidebar" },
+  "consoleHelpC": { "message": "  Alt+C  Clear chat" },
+
+  "defaultPromptText": { "message": "Please describe this image" }
+}
