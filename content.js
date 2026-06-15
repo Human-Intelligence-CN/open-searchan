@@ -512,9 +512,9 @@
             port.onDisconnect.addListener(() => {
                 if (resolved) return;
                 // SW 未响应可能是冷启动延迟，自动重试
-                if (!swResponded && (retryCount || 0) < maxRetries) {
+                if (!swResponded && retryCount < maxRetries) {
                     activeApiPort = null;
-                    setTimeout(() => doRequest(settings, (retryCount || 0) + 1), 300);
+                    setTimeout(() => doRequest(settings, retryCount + 1), 300);
                     return;
                 }
                 resolve('error', { error: i18n('errorRequestCancelled') });
@@ -543,6 +543,7 @@
 
     // ========== 发送消息 ==========
     let pendingImageData = null;
+    let requestPending = false;
 
     async function sendMessage(promptText) {
         const s = await getSettings();
@@ -582,7 +583,6 @@
         );
     }
 
-    let requestPending = false;
     sendBtn.addEventListener('click', () => sendMessage());
     inputEl.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey && !requestPending) { e.preventDefault(); sendMessage(); }

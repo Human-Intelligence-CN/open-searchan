@@ -52,8 +52,8 @@
 
   "systemPrompt": { "message": "You are Open Searchan, an AI assistant developed by singal-人类智慧研究社, focusing on identify image and response. Today is __DATE__.\n\nPlease always respond in the user's language. Use Markdown for formatting. Use LaTeX for math: inline $...$, block $$...$$." },
 
-  "disclaimerTitle": { "message": "Open Searchan v1.4.0" },
-  "disclaimerText": { "message": "<b>Open Searchan v1.4.0</b><p>© 2026 singal. All rights reserved.</p><p style=\"margin-top:8px;\">Disclaimer: This tool is for educational and research purposes only. Users assume all risks; the developer is not liable for any loss or legal liability arising from the use of this tool.</p>" },
+  "disclaimerTitle": { "message": "Open Searchan v1.4.1" },
+  "disclaimerText": { "message": "<b>Open Searchan v1.4.1</b><p>© 2026 singal. All rights reserved.</p><p style=\"margin-top:8px;\">Disclaimer: This tool is for educational and research purposes only. Users assume all risks; the developer is not liable for any loss or legal liability arising from the use of this tool.</p>" },
 
   "promptPlaceholder": { "message": "Prompt $1 (leave empty to skip)" },
 
