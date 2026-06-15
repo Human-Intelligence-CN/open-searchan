@@ -1,7 +1,7 @@
 'use strict';
 (function () {
-    const SIDEBAR_WIDTH = 400;
     const MAX_IMAGE_DIM = 1920;
+    const PROMPT_COUNT = 5;
 
     // i18n 快捷函数
     const i18n = (k, ...s) => chrome.i18n.getMessage(k, s.length ? s : undefined);
@@ -11,20 +11,14 @@
         _cache: null,
         async get() {
             if (this._cache) return this._cache;
-            const keys = ['os_api_url', 'os_api_key', 'os_model', 'os_max_tokens', 'os_theme',
-                'os_prompt_1', 'os_prompt_2', 'os_prompt_3', 'os_prompt_4', 'os_prompt_5', 'os_prompt_active'];
+            const keys = ['os_api_url', 'os_api_key', 'os_model', 'os_max_tokens', 'os_theme', 'os_prompt_active'];
+            for (let i = 1; i <= PROMPT_COUNT; i++) keys.push(`os_prompt_${i}`);
             const result = await chrome.storage.local.get(keys);
             this._cache = {
                 apiUrl: result.os_api_url || '',
                 apiKey: result.os_api_key || '',
                 model: result.os_model || '',
-                prompts: [
-                    result.os_prompt_1 || '',
-                    result.os_prompt_2 || '',
-                    result.os_prompt_3 || '',
-                    result.os_prompt_4 || '',
-                    result.os_prompt_5 || '',
-                ],
+                prompts: Array.from({ length: PROMPT_COUNT }, (_, i) => result[`os_prompt_${i + 1}`] || ''),
                 promptActive: parseInt(result.os_prompt_active) || 1,
                 maxTokens: parseInt(result.os_max_tokens) || 1024,
                 theme: result.os_theme || 'light',
@@ -125,9 +119,6 @@
 
     // ========== 设置读写 ==========
     async function getSettings() { return storage.get(); }
-    async function saveSettings(url, key, model, prompts, promptActive, maxTokens) {
-        await storage.set({ apiUrl: url, apiKey: key, model, prompts, promptActive, maxTokens });
-    }
     async function loadSettingsToForm() {
         const s = await getSettings();
         document.getElementById('os-api-url').value = s.apiUrl;
@@ -142,7 +133,7 @@
         const container = document.getElementById('os-prompt-list');
         if (!container) return;
         container.innerHTML = '';
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < PROMPT_COUNT; i++) {
             const div = document.createElement('div');
             div.className = 'os-prompt-row';
             div.innerHTML = `
@@ -157,11 +148,11 @@
     function collectPrompts() {
         const prompts = [];
         let active = 1;
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < PROMPT_COUNT; i++) {
             const input = document.getElementById(`os-prompt-${i + 1}`);
             prompts.push(input ? input.value.trim() : '');
         }
-        const radio = document.querySelector('input[name="os-prompt-active"]:checked');
+        const radio = sidebar.querySelector('input[name="os-prompt-active"]:checked');
         if (radio) active = parseInt(radio.value);
         return { prompts, active };
     }
@@ -191,16 +182,20 @@
     }
 
     // ========== Tab 切换 ==========
+    function switchTab(name) {
+        sidebar.querySelectorAll('.os-tab').forEach(t => t.classList.remove('os-active'));
+        sidebar.querySelectorAll('.os-panel').forEach(p => p.classList.remove('os-active'));
+        const tab = sidebar.querySelector(`[data-tab="${name}"]`);
+        const panel = sidebar.querySelector(`[data-panel="${name}"]`);
+        if (tab) tab.classList.add('os-active');
+        if (panel) panel.classList.add('os-active');
+        if (name === 'settings') loadSettingsToForm();
+    }
+
     sidebar.querySelector('.os-tabs').addEventListener('click', (e) => {
         const tab = e.target.closest('.os-tab');
         if (!tab) return;
-        const tabName = tab.dataset.tab;
-        sidebar.querySelectorAll('.os-tab').forEach(t => t.classList.remove('os-active'));
-        sidebar.querySelectorAll('.os-panel').forEach(p => p.classList.remove('os-active'));
-        tab.classList.add('os-active');
-        const panel = sidebar.querySelector(`[data-panel="${tabName}"]`);
-        if (panel) panel.classList.add('os-active');
-        if (tabName === 'settings') loadSettingsToForm();
+        switchTab(tab.dataset.tab);
     });
 
     toggleBtn.addEventListener('click', toggleSidebar);
@@ -210,7 +205,7 @@
     function setTheme(light) {
         sidebar.classList.toggle('os-light', light);
         themeBtn.textContent = light ? i18n('themeLightIcon') : i18n('themeDarkIcon');
-        storage.set({ theme: light ? 'light' : 'dark' });
+        storage.set({ theme: light ? 'light' : 'dark' }).catch(() => {});
     }
     themeBtn.addEventListener('click', () => setTheme(!sidebar.classList.contains('os-light')));
 
@@ -234,15 +229,12 @@
             + 'animate,set,animateMotion,animateTransform,'
             + 'filter,pattern,use[href]').forEach(el => el.remove());
         // 移除事件属性、javascript: 协议
-        const DANGEROUS_ATTRS = ['href', 'src', 'xlink:href', 'action', 'formaction', 'data'];
         const walk = (node) => {
             if (node.nodeType === 1) {
                 for (const attr of [...node.attributes]) {
                     const name = attr.name.toLowerCase();
                     const val = attr.value;
-                    if (name.startsWith('on')
-                        || /^javascript:/i.test(val)
-                        || (DANGEROUS_ATTRS.includes(name) && /^javascript:/i.test(val))) {
+                    if (name.startsWith('on') || /^javascript:/i.test(val)) {
                         node.removeAttribute(attr.name);
                     }
                 }
@@ -259,7 +251,7 @@
         html = html.replace(/(?<!\$)\$(?!\$)([^\$]+?)\$(?!\$)/g, (_, m) =>
             `<span class="math-inline">${escapeHtml(m.trim())}</span>`);
         html = (typeof marked !== 'undefined') ? marked.parse(html) : escapeHtml(text).replace(/\n/g, '<br>');
-        if (typeof katex !== 'undefined' && document.compatMode !== 'BackCompat') {
+        if (typeof katex !== 'undefined') {
             const div = document.createElement('div');
             div.innerHTML = sanitizeHTML(html);
             div.querySelectorAll('.math-block').forEach(el => {
@@ -268,7 +260,7 @@
             div.querySelectorAll('.math-inline').forEach(el => {
                 try { el.outerHTML = katex.renderToString(el.textContent, { displayMode: false, throwOnError: false }); } catch (_) { }
             });
-            html = div.innerHTML;
+            return div.innerHTML; // KaTeX 输出已安全，无需二次 sanitize
         }
         return sanitizeHTML(html);
     }
@@ -286,19 +278,25 @@
         h += `<span class="os-prompt-text">${escapeHtml(promptText)}</span></div>`;
         div.innerHTML = h;
         const img = div.querySelector('img');
-        if (img) img.addEventListener('click', () => window.open(img.src));
+        if (img) img.addEventListener('click', () => {
+            const a = document.createElement('a');
+            a.href = img.src;
+            a.download = 'screenshot.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
         messagesEl.appendChild(div);
         scrollToBottom();
     }
 
     function createStreamingBubble() {
         removeEmptyState();
-        removeLoadingIndicator();
         const div = document.createElement('div');
         div.className = 'os-msg os-msg-ai';
         div.innerHTML = '<div class="os-msg-label">AI</div>'
-            + `<div class="os-thinking-toggle" style="display:none;cursor:pointer;font-size:11px;color:var(--os-muted);padding:2px 8px;user-select:none;">${i18n('thinkingCollapsed')}</div>`
-            + '<div class="os-thinking-content" style="display:none;font-size:12px;color:var(--os-text-dim);background:var(--os-header);padding:8px 12px;border-radius:8px;margin-bottom:6px;white-space:pre-wrap;border-left:2px solid var(--os-border);"></div>'
+            + `<div class="os-thinking-toggle">${i18n('thinkingCollapsed')}</div>`
+            + '<div class="os-thinking-content"></div>'
             + '<div class="os-msg-bubble"></div>';
         const bubble = div.querySelector('.os-msg-bubble');
         const toggle = div.querySelector('.os-thinking-toggle');
@@ -324,13 +322,8 @@
         };
     }
 
-    function removeLoadingIndicator() {
-        const el = document.getElementById('os-loading-indicator');
-        if (el) el.remove();
-    }
     function appendErrorMessage(errorText) {
         removeEmptyState();
-        removeLoadingIndicator();
         const div = document.createElement('div');
         div.className = 'os-msg os-msg-ai';
         div.innerHTML = `<div class="os-msg-label">${i18n('errorLabel')}</div><div class="os-msg-bubble" style="color:var(--os-red);">${escapeHtml(errorText)}</div>`;
@@ -378,29 +371,38 @@
         });
     }
 
-    // ========== API 调用 (fetch + ReadableStream，支持取消) ==========
-    let activeAbortController = null;
+    // ========== API 调用 (Port 连接 → Service Worker 代发，绕过 CORS) ==========
+    let activeApiPort = null;
+    let apiRequestId = 0;
 
     function abortActiveRequest() {
-        if (activeAbortController) {
-            activeAbortController.abort();
-            activeAbortController = null;
+        if (activeApiPort) {
+            activeApiPort.disconnect();
+            activeApiPort = null;
         }
     }
 
-    function callAPI(userContent, onChunk, callback) {
-        // 取消前一个请求
+    function callAPI(userContent, onChunk, callback, s) {
         abortActiveRequest();
-        const abortController = new AbortController();
-        activeAbortController = abortController;
+        const currentId = ++apiRequestId;
 
-        // 超时处理（120s）
-        const timeoutId = setTimeout(() => abortController.abort(), 120000);
+        let resolved = false;
+        const resolve = (type, data) => {
+            if (resolved) return;
+            resolved = true;
+            activeApiPort = null;
+            if (type === 'done') {
+                conversation.push(data.userMsg);
+                conversation.push({ role: 'assistant', content: data.fullText, thinking: data.thinkingText || undefined });
+                callback(null, data.fullText, data.thinkingText);
+            } else {
+                callback(new Error(data.error));
+            }
+        };
 
-        getSettings().then(async (s) => {
-            if (!s.apiUrl || !s.apiKey || !s.model) {
-                clearTimeout(timeoutId);
-                activeAbortController = null;
+        const doRequest = async (settings) => {
+            if (currentId !== apiRequestId) return; // 过期请求，静默丢弃
+            if (!settings.apiUrl || !settings.apiKey || !settings.model) {
                 callback(new Error(i18n('errorNoSettings')));
                 return;
             }
@@ -410,114 +412,52 @@
                 role: 'system',
                 content: i18n('systemPrompt').replace('$DATE$', dateStr),
             };
-            const messages = [systemMsg, ...conversation, userMsg];
             const body = {
-                model: s.model,
-                messages,
-                max_completion_tokens: s.maxTokens,
+                model: settings.model,
+                messages: [systemMsg, ...conversation, userMsg],
+                max_completion_tokens: settings.maxTokens,
                 stream: true,
                 thinking: { type: 'enabled' },
             };
 
-            try {
-                const response = await fetch(s.apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'api-key': s.apiKey,
-                    },
-                    body: JSON.stringify(body),
-                    signal: abortController.signal,
-                });
+            const port = chrome.runtime.connect({ name: 'api-stream' });
+            activeApiPort = port;
 
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    let err = `HTTP ${response.status}`;
-                    try {
-                        const data = await response.json();
-                        err = data.error?.message || err;
-                    } catch (_) {}
-                    activeAbortController = null;
-                    callback(new Error(err + '\n\n' + s.apiUrl));
-                    return;
+            port.onMessage.addListener((msg) => {
+                if (msg.type === 'chunk') {
+                    onChunk(msg.fullText, msg.thinkingText);
+                } else if (msg.type === 'done') {
+                    resolve('done', { fullText: msg.fullText, thinkingText: msg.thinkingText, userMsg });
+                } else if (msg.type === 'error') {
+                    resolve('error', { error: msg.error });
                 }
+            });
 
-                // 流式读取 SSE
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let fullText = '', thinkingText = '', buffer = '';
-                const rawChunks = [];
+            port.onDisconnect.addListener(() => {
+                if (!resolved) {
+                    resolve('error', { error: i18n('errorRequestCancelled') });
+                }
+            });
 
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    rawChunks.push(value);
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || '';
-                    for (const line of lines) {
-                        if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
-                        try {
-                            const delta = JSON.parse(line.slice(6)).choices?.[0]?.delta;
-                            if (delta?.reasoning_content) { thinkingText += delta.reasoning_content; onChunk(fullText, thinkingText); }
-                            if (delta?.content) { fullText += delta.content; onChunk(fullText, thinkingText); }
-                        } catch (_) {}
-                    }
-                }
+            port.postMessage({
+                type: 'api-request',
+                apiUrl: settings.apiUrl,
+                apiKey: settings.apiKey,
+                body,
+            });
+        };
 
-                // 处理尾部残留行
-                buffer += decoder.decode(); // flush decoder
-                if (buffer.startsWith('data: ') && buffer !== 'data: [DONE]') {
-                    try {
-                        const delta = JSON.parse(buffer.slice(6)).choices?.[0]?.delta;
-                        if (delta?.reasoning_content) thinkingText += delta.reasoning_content;
-                        if (delta?.content) fullText += delta.content;
-                        onChunk(fullText, thinkingText);
-                    } catch (_) {}
-                }
-
-                activeAbortController = null;
-                if (fullText) {
-                    conversation.push(userMsg);
-                    conversation.push({ role: 'assistant', content: fullText, thinking: thinkingText || undefined });
-                    callback(null, fullText, thinkingText);
-                } else {
-                    // 非流式兼容：尝试解析完整 JSON
-                    try {
-                        const all = rawChunks.length
-                            ? new TextDecoder().decode(new Uint8Array(rawChunks.reduce((a, c) => { const t = new Uint8Array(a.length + c.length); t.set(a); t.set(c, a.length); return t; }, new Uint8Array(0))))
-                            : '';
-                        const data = JSON.parse(all);
-                        const msg = data.choices?.[0]?.message;
-                        const reply = msg?.content;
-                        if (reply) {
-                            conversation.push(userMsg);
-                            conversation.push({ role: 'assistant', content: reply, thinking: msg?.reasoning_content });
-                            callback(null, reply, msg?.reasoning_content);
-                        } else {
-                            callback(new Error(i18n('errorApiEmpty')));
-                        }
-                    } catch (_) {
-                        callback(new Error(i18n('errorApiEmpty')));
-                    }
-                }
-            } catch (e) {
-                clearTimeout(timeoutId);
-                if (e.name === 'AbortError') {
-                    // 被取消或超时，静默处理
-                    return;
-                }
-                activeAbortController = null;
-                callback(new Error(i18n('errorNetworkFailed', s.apiUrl)));
-            }
-        });
+        if (s) {
+            doRequest(s);
+        } else {
+            getSettings().then(doRequest);
+        }
     }
 
     // ========== 辅助函数 ==========
-    async function getActivePromptText() {
-        const s = await getSettings();
-        return s.prompts[s.promptActive - 1] || '';
+    async function getActivePromptText(s) {
+        const settings = s || await getSettings();
+        return settings.prompts[settings.promptActive - 1] || '';
     }
 
     // ========== 发送消息 ==========
@@ -529,7 +469,7 @@
             appendErrorMessage(i18n('errorNoSettingsSidebar'));
             return;
         }
-        const activePrompt = await getActivePromptText();
+        const activePrompt = await getActivePromptText(s);
         const text = (promptText || inputEl.value.trim() || activePrompt || i18n('defaultPromptText'));
         if (!text && !pendingImageData) return;
 
@@ -553,7 +493,8 @@
                 sendBtn.disabled = false;
                 if (err) streamBubble.error(err.message || String(err));
                 else if (reply) streamBubble.update(reply, thinking);
-            }
+            },
+            s
         );
     }
 
@@ -564,7 +505,7 @@
     inputEl.addEventListener('input', () => {
         inputEl.style.height = 'auto';
         inputEl.style.height = Math.min(inputEl.scrollHeight, 100) + 'px';
-        if (inputEl.value.trim()) sendBtn.disabled = false;
+        sendBtn.disabled = !inputEl.value.trim();
     });
 
     // ========== 设置表单 ==========
@@ -575,7 +516,7 @@
         const model = document.getElementById('os-model').value.trim();
         const maxTokens = document.getElementById('os-max-tokens').value.trim();
         const { prompts, active } = collectPrompts();
-        await saveSettings(url, key, model, prompts, active, maxTokens);
+        await storage.set({ apiUrl: url, apiKey: key, model, prompts, promptActive: active, maxTokens });
         saveMsgEl.textContent = i18n('settingsSaved');
         setTimeout(() => { saveMsgEl.textContent = ''; }, 2000);
     });
@@ -589,6 +530,7 @@
 
     // ========== 选区截图 ==========
     let selStartX = 0, selStartY = 0, selCurX = 0, selCurY = 0, isSelecting = false;
+    let screenshotActive = false;
 
     function updateOverlay() {
         const x1 = Math.min(selStartX, selCurX), y1 = Math.min(selStartY, selCurY);
@@ -601,6 +543,10 @@
     }
 
     function startScreenshot() {
+        // 防止重复调用导致事件监听器泄漏
+        if (screenshotActive) return;
+        screenshotActive = true;
+
         document.body.style.userSelect = '';
         overlay.classList.remove('os-active');
         isSelecting = false;
@@ -630,30 +576,33 @@
             selCurY = Math.max(0, Math.min(e.clientY, window.innerHeight));
             updateOverlay();
         }
+        function cancelScreenshot() {
+            cleanup();
+            if (wasVisible) sidebar.style.visibility = '';
+            toggleBtn.style.display = '';
+            overlay.classList.remove('os-active');
+            document.body.style.userSelect = '';
+            screenshotActive = false;
+        }
         function onMouseUp(e) {
-            if (!isSelecting) { cleanup(); return; }
+            if (!isSelecting) return;
             isSelecting = false;
             const x1 = Math.min(selStartX, selCurX), y1 = Math.min(selStartY, selCurY);
             const x2 = Math.max(selStartX, selCurX), y2 = Math.max(selStartY, selCurY);
             const w = x2 - x1, h = y2 - y1;
+            if (w < 10 || h < 10) {
+                cancelScreenshot();
+                return;
+            }
             cleanup();
             if (wasVisible) sidebar.style.visibility = '';
             toggleBtn.style.display = '';
-            if (w < 10 || h < 10) {
-                overlay.classList.remove('os-active');
-                document.body.style.userSelect = '';
-                return;
-            }
             captureAndProceed(x1, y1, w, h);
         }
         function onKeyDown(e) {
             if (e.key === 'Escape') {
                 e.preventDefault();
-                cleanup();
-                if (wasVisible) sidebar.style.visibility = '';
-                toggleBtn.style.display = '';
-                overlay.classList.remove('os-active');
-                document.body.style.userSelect = '';
+                cancelScreenshot();
             }
         }
         function cleanup() {
@@ -670,6 +619,7 @@
     }
 
     async function captureAndProceed(vpX, vpY, vpW, vpH) {
+        screenshotActive = false;
         overlay.classList.remove('os-active');
         document.body.style.userSelect = '';
 
@@ -681,12 +631,7 @@
         messagesEl.appendChild(loadingDiv);
 
         try {
-            const result = await captureScreen();
-            if (!result) {
-                appendErrorMessage(i18n('errorCaptureNoPermission'));
-                return;
-            }
-            const { canvas: fullCanvas, offsetX, offsetY, scaleX, scaleY } = result;
+            const { canvas: fullCanvas, offsetX, offsetY, scaleX, scaleY } = await captureScreen();
             const sx = (vpX + offsetX) * scaleX;
             const sy = (vpY + offsetY) * scaleY;
             const sw = vpW * scaleX;
@@ -700,22 +645,17 @@
             ctx.drawImage(fullCanvas, sx, sy, sw, sh, 0, 0, finalCanvas.width, finalCanvas.height);
             const base64 = finalCanvas.toDataURL('image/jpeg', 0.85);
 
-            const capLoading = document.getElementById('os-capture-loading');
-            if (capLoading) capLoading.remove();
-
             showSidebar();
-            sidebar.querySelector('[data-tab="chat"]').classList.add('os-active');
-            sidebar.querySelector('[data-tab="settings"]').classList.remove('os-active');
-            sidebar.querySelector('[data-panel="chat"]').classList.add('os-active');
-            sidebar.querySelector('[data-panel="settings"]').classList.remove('os-active');
+            switchTab('chat');
             conversation = [];
             pendingImageData = base64;
             const activePrompt = (await getActivePromptText()) || i18n('defaultPromptText');
             sendMessage(activePrompt);
         } catch (err) {
+            appendErrorMessage(i18n('errorCaptureFailed', err.message || String(err)));
+        } finally {
             const capLoading = document.getElementById('os-capture-loading');
             if (capLoading) capLoading.remove();
-            appendErrorMessage(i18n('errorCaptureFailed', err.message || String(err)));
         }
     }
 
