@@ -54,36 +54,50 @@
 Alt+Z (Chrome Extension Command)
   │
   ▼
-Background Service Worker ──► activeTab 激活
+Background Service Worker
+  │  ① chrome.commands → activeTab → 通知 content script
+  │  ② chrome.tabs.captureVisibleTab → GPU 帧缓冲静默截图
+  │  ③ chrome.runtime.connect Port → 代理 API 请求绕过 CORS
   │
   ▼
-Content Script ──► 选区叠加层 (拖拽框选)
+Content Script
+  │  选区叠加层 (拖拽框选) → Canvas 裁剪 → JPEG 压缩
+  │  侧边栏 UI (Chat + Settings 面板)
+  │  marked + KaTeX → Markdown + LaTeX 渲染
   │
   ▼
-chrome.tabs.captureVisibleTab ──► GPU 帧缓冲静默截图
+Port 长连接 (chrome.runtime.connect)
+  │  content ↔ SW 双向消息
+  │  SW 代发 fetch(SSE stream) → 解析 → postMessage 回传 chunk
   │
   ▼
-Canvas 裁剪 ──► JPEG 压缩 ──► 右边栏展开
-  │
-  ▼
-XHR SSE Stream ──► MiMo API ──► 流式打字机回复
-  │
-  ▼
-marked + KaTeX ──► Markdown + LaTeX 渲染
+OpenAI 兼容 API
+  │  POST /chat/completions (stream: true)
+  │  支持 reasoning_content 思考过程
 ```
+
+### 数据流
+
+- **截图**: Alt+Z → content 选区 → captureVisibleTab → Canvas 裁剪 → base64 → API
+- **对话**: content 构建 messages → Port 发给 SW → SW fetch SSE → 逐 chunk 回传 → content 渲染
+- **设置**: chrome.storage.local 读写，content 和 SW 均可访问
+- **主题**: CSS 自定义属性切换 `os-light` 类，偏好存入 storage
 
 ## 项目结构
 
 ```
-os-extension/
+open-searchan/
 ├── manifest.json          # Chrome Extension Manifest V3
-├── background.js          # Service Worker (命令 + 截图调度)
-├── content.js             # Content Script (UI + 逻辑)
-├── content.css            # 样式
-├── marked.min.js          # Markdown 渲染
-├── katex.min.js           # LaTeX 数学公式渲染
+├── background.js          # Service Worker (截图命令 + Port API 代理 + SSE 解析)
+├── content.js             # Content Script (侧边栏 UI + 选区截图 + 聊天逻辑)
+├── content.css            # 样式 (CSS 自定义属性主题)
+├── marked.min.js          # Markdown 渲染库
+├── katex.min.js           # LaTeX 数学公式渲染库
 ├── katex.min.css          # KaTeX 样式
-└── icons/                 # 扩展图标
+├── _locales/              # 国际化
+│   ├── zh_CN/messages.json
+│   └── en/messages.json
+└── icons/                 # 扩展图标 (16/48/128)
 ```
 
 ## 依赖
