@@ -68,36 +68,41 @@ Content Script
   ▼
 Port 长连接 (chrome.runtime.connect)
   │  content ↔ SW 双向消息
-  │  SW 代发 fetch(SSE stream) → 解析 → postMessage 回传 chunk
+  │  SW 代发 fetch(SSE stream) → 解析 delta → 增量回传（非累积全文）
+  │  HTTPS 强制校验（双层：SW 端 + 设置表单预检）
+  │  AbortController 超时 120s，局部变量隔离防并发
   │
   ▼
 OpenAI 兼容 API
   │  POST /chat/completions (stream: true)
-  │  支持 reasoning_content 思考过程
+  │  支持 reasoning_content 思考过程（可折叠展开）
+  │  非流式兼容回退解析完整 JSON
 ```
 
 ### 数据流
 
-- **截图**: Alt+Z → content 选区 → captureVisibleTab → Canvas 裁剪 → base64 → API
-- **对话**: content 构建 messages → Port 发给 SW → SW fetch SSE → 逐 chunk 回传 → content 渲染
-- **设置**: chrome.storage.local 读写，content 和 SW 均可访问
-- **主题**: CSS 自定义属性切换 `os-light` 类，偏好存入 storage
+- **截图**: Alt+Z → content 选区 → `captureVisibleTab` → Canvas 裁剪 JPEG → base64 → Port → SW fetch → API
+- **对话**: content 构建 messages → Port 发给 SW → SW fetch SSE → 逐 delta 增量回传 → content 累积渲染
+- **流式优化**: SW 只发送增量（`deltaText`/`deltaThinking`），content 侧本地累积，避免 O(n²) 数据传输
+- **设置**: `chrome.storage.local` 读写，content 和 SW 均可访问，`storage.onChanged` 多标签页同步
+- **主题**: CSS 变量定义在 `body`/`body.os-light`，一键切换暗色/亮色，偏好存入 storage
+- **对话管理**: 最多保留 20 轮（40 条消息），自动截断旧消息，防止上下文窗口溢出
 
 ## 项目结构
 
 ```
 open-searchan/
-├── manifest.json          # Chrome Extension Manifest V3
-├── background.js          # Service Worker (截图命令 + Port API 代理 + SSE 解析)
-├── content.js             # Content Script (侧边栏 UI + 选区截图 + 聊天逻辑)
-├── content.css            # 样式 (CSS 自定义属性主题)
-├── marked.min.js          # Markdown 渲染库
-├── katex.min.js           # LaTeX 数学公式渲染库
+├── manifest.json          # MV3 清单（CSP 声明、最小权限、Alt+Z 命令）
+├── background.js          # Service Worker（截图捕获 + Port 流式代理 + SSE 增量解析）
+├── content.js             # Content Script（侧边栏 UI + 选区截图 + 聊天 + XSS 防护）
+├── content.css            # 样式（CSS 变量主题定义在 body，暗/亮双主题）
+├── marked.min.js          # Markdown → HTML 渲染（输出经 sanitizeHTML 消毒）
+├── katex.min.js           # LaTeX 数学公式渲染（Unicode 占位符保护）
 ├── katex.min.css          # KaTeX 样式
-├── _locales/              # 国际化
+├── _locales/              # 国际化（zh_CN / en，47 个翻译键）
 │   ├── zh_CN/messages.json
 │   └── en/messages.json
-└── icons/                 # 扩展图标 (16/48/128)
+└── icons/                 # 扩展图标（16 / 48 / 128 px）
 ```
 
 ## 依赖
@@ -105,11 +110,15 @@ open-searchan/
 - [marked](https://github.com/markedjs/marked) — Markdown 解析
 - [KaTeX](https://katex.org/) — LaTeX 数学公式渲染
 
-## 隐私
+## 安全与隐私
 
-- API Key 仅存储在本地 `chrome.storage.local`
-- 截图仅通过 HTTPS 发送到配置的 API 端点
-- 无任何第三方数据收集
+- **HTTPS 强制**：SW 层拒绝非加密 API 请求，设置表单预检双重拦截
+- **XSS 防护**：`DOMParser` 消毒（不触发外部资源）+ `escapeHtml` 转义 + 事件属性/javascript: 协议过滤
+- **API Key**：仅存储在本地 `chrome.storage.local`，不同步到云端
+- **截图数据**：仅通过 HTTPS 发送到用户自行配置的 API 端点，不经过第三方
+- **CSP 声明**：`script-src 'self'; object-src 'self'`，禁止内联脚本
+- **无数据收集**：不包含任何埋点、统计或遥测代码
+- **最小权限**：仅申请 `storage`、`activeTab`、`tabs` 三项权限
 
 ## License
 
