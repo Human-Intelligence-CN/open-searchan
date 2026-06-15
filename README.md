@@ -70,7 +70,7 @@ Port 长连接 (chrome.runtime.connect)
   │  content ↔ SW 双向消息
   │  SW 代发 fetch(SSE stream) → 解析 delta → 增量回传（非累积全文）
   │  HTTPS 强制校验（双层：SW 端 + 设置表单预检）
-  │  AbortController 超时 120s，局部变量隔离防并发
+  │  AbortController 两段超时（fetch 180s + stream 300s），局部变量隔离防并发
   │
   ▼
 OpenAI 兼容 API
@@ -99,7 +99,7 @@ open-searchan/
 ├── marked.min.js          # Markdown → HTML 渲染（输出经 sanitizeHTML 消毒）
 ├── katex.min.js           # LaTeX 数学公式渲染（Unicode 占位符保护）
 ├── katex.min.css          # KaTeX 样式
-├── _locales/              # 国际化（zh_CN / en，47 个翻译键）
+├── _locales/              # 国际化（zh_CN / en，55 个翻译键）
 │   ├── zh_CN/messages.json
 │   └── en/messages.json
 └── icons/                 # 扩展图标（16 / 48 / 128 px）

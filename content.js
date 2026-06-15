@@ -4,6 +4,7 @@
     const MAX_IMAGE_DIM = 1920;
     const PROMPT_COUNT = 5;
     const MAX_CONVERSATION = 40; // 最多保留 20 轮对话 (40 条消息)
+    const MAX_RETRIES = 2;
 
     // i18n 快捷函数
     const i18n = (k, ...s) => chrome.i18n.getMessage(k, s.length ? s : undefined);
@@ -21,8 +22,8 @@
                 apiKey: result.os_api_key || '',
                 model: result.os_model || '',
                 prompts: Array.from({ length: PROMPT_COUNT }, (_, i) => result[`os_prompt_${i + 1}`] || ''),
-                promptActive: parseInt(result.os_prompt_active) || 1,
-                maxTokens: Math.max(64, parseInt(result.os_max_tokens) || 1024),
+                promptActive: parseInt(result.os_prompt_active, 10) || 1,
+                maxTokens: Math.max(64, parseInt(result.os_max_tokens, 10) || 1024),
                 theme: result.os_theme || 'light',
             };
             return this._cache;
@@ -172,6 +173,7 @@
     let conversation = [];
 
     function resetConversation() {
+        abortActiveRequest();
         conversation = [];
         messagesEl.querySelectorAll('.os-msg, .os-loading').forEach(el => el.remove());
         if (!messagesEl.querySelector('.os-empty')) {
@@ -188,8 +190,7 @@
         sidebar.classList.remove('os-hidden');
         if (!settingsLoading) {
             settingsLoading = true;
-            await loadSettingsToForm();
-            settingsLoading = false;
+            await loadSettingsToForm().finally(() => { settingsLoading = false; });
         }
     }
     function hideSidebar() { sidebar.classList.add('os-hidden'); }
@@ -334,7 +335,6 @@
         const bubble = div.querySelector('.os-msg-bubble');
         const toggle = div.querySelector('.os-thinking-toggle');
         const thinkingEl = div.querySelector('.os-thinking-content');
-        const loadingEl = bubble.querySelector('.os-loading-dots');
         toggle.addEventListener('click', () => {
             const shown = thinkingEl.style.display === 'block';
             thinkingEl.style.display = shown ? 'none' : 'block';
@@ -342,13 +342,9 @@
         });
         messagesEl.appendChild(div);
         let lastThinking = '';
-        let firstChunk = true;
         return {
             update(text, thinking) {
-                if (firstChunk && text) {
-                    firstChunk = false;
-                    if (loadingEl) loadingEl.remove();
-                }
+                // bubble.innerHTML 赋值会隐含清除 loading dots，无需显式 remove
                 if (thinking && thinking !== lastThinking) {
                     lastThinking = thinking;
                     thinkingEl.textContent = thinking;
@@ -358,7 +354,6 @@
                 scrollToBottom();
             },
             error(text) {
-                if (loadingEl) loadingEl.remove();
                 bubble.innerHTML = `<span style="color:var(--os-red);">${escapeHtml(text)}</span>`;
             },
         };
@@ -447,10 +442,11 @@
         const currentId = ++apiRequestId;
 
         let resolved = false;
+        let requestPort = null; // 在 doRequest 中赋值，用于竞态保护
         const resolve = (type, data) => {
             if (resolved) return;
             resolved = true;
-            activeApiPort = null;
+            if (activeApiPort === requestPort) activeApiPort = null;
             if (type === 'done') {
                 conversation.push(data.userMsg);
                 conversation.push({ role: 'assistant', content: data.fullText, thinking: data.thinkingText || undefined });
@@ -465,7 +461,11 @@
         };
 
         const doRequest = async (settings, retryCount) => {
-            if (currentId !== apiRequestId) return; // 过期请求，静默丢弃
+            // 过期请求：已被新请求取代，通知上层清理 UI 状态
+            if (currentId !== apiRequestId) {
+                callback(new Error(i18n('errorRequestCancelled')));
+                return;
+            }
             if (!settings.apiUrl || !settings.apiKey || !settings.model) {
                 callback(new Error(i18n('errorNoSettings')));
                 return;
@@ -492,9 +492,9 @@
                 return;
             }
             activeApiPort = port;
+            requestPort = port;
 
             let accText = '', accThinking = '', swResponded = false;
-            const maxRetries = 2;
 
             port.onMessage.addListener((msg) => {
                 swResponded = true;
@@ -511,13 +511,17 @@
 
             port.onDisconnect.addListener(() => {
                 if (resolved) return;
-                // SW 未响应可能是冷启动延迟，自动重试
-                if (!swResponded && retryCount < maxRetries) {
-                    activeApiPort = null;
-                    setTimeout(() => doRequest(settings, retryCount + 1), 300);
-                    return;
-                }
-                resolve('error', { error: i18n('errorRequestCancelled') });
+                // 短暂延迟：让可能已在队列中的 onMessage 回调先触发
+                // 避免 onDisconnect/onMessage 竞态导致无意义重试
+                setTimeout(() => {
+                    if (resolved) return;
+                    if (!swResponded && retryCount < MAX_RETRIES) {
+                        if (activeApiPort === port) activeApiPort = null;
+                        setTimeout(() => doRequest(settings, retryCount + 1), 300);
+                        return;
+                    }
+                    resolve('error', { error: i18n('errorRequestCancelled') });
+                }, 50);
             });
 
             port.postMessage({
@@ -546,15 +550,15 @@
     let requestPending = false;
 
     async function sendMessage(promptText) {
+        if (requestPending) return;
         const s = await getSettings();
         if (!s.apiUrl || !s.apiKey || !s.model) {
             appendErrorMessage(i18n('errorNoSettingsSidebar'));
-            requestPending = false;
             return;
         }
         const activePrompt = await getActivePromptText(s);
         const text = (promptText || inputEl.value.trim() || activePrompt || i18n('defaultPromptText'));
-        if (!text && !pendingImageData) { requestPending = false; return; }
+        if (!text && !pendingImageData) return;
 
         const userContent = [];
         if (pendingImageData) {
@@ -583,7 +587,7 @@
         );
     }
 
-    sendBtn.addEventListener('click', () => sendMessage());
+    sendBtn.addEventListener('click', () => { if (!requestPending) sendMessage(); });
     inputEl.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey && !requestPending) { e.preventDefault(); sendMessage(); }
     });

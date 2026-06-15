@@ -1,5 +1,51 @@
 # Changelog
 
+## [1.5.0] — 2026-06-15
+
+### 修复
+
+- `sendMessage` 添加 `requestPending` 同步守卫和 click 事件防护，消除并发竞态
+- `resolve` 中 `activeApiPort = null` 改为条件赋值，防止旧请求覆盖新请求端口引用
+- 纯思考内容（reasoning-only）响应不再误入非流式回退，避免思考过程被错误覆盖
+- `resetConversation` 添加 `abortActiveRequest()`，防止活跃请求期间清空对话导致状态破坏
+- `onDisconnect` 添加 50ms 延迟，避免与 `onMessage` 竞态触发无意义重试
+- `concatChunks` 超限时抛出明确 Error，catch 块传播具体错误消息
+- `showSidebar` 改用 `.finally()` 防 `settingsLoading` 锁泄漏
+- `parseInt` 添加基数参数 `10`
+- 过期 `doRequest` 重试改为调用 `callback`，避免 UI 残留幽灵气泡
+
+### 优化
+
+- 新增流式阶段超时（300s），防止服务器挂起导致永久等待
+- 移除冗余的 `firstChunk` / `loadingEl.remove()` 逻辑（`innerHTML` 赋值已隐含清除）
+- `MAX_RETRIES` 提取为模块级常量
+- README 文档数据同步（超时值、翻译键数量）
+
+## [1.4.1] — 2026-06-15
+
+### 修复
+
+- `doRequest` 重试计数器 `retryCount` 移除冗余的 `|| 0` 回退
+- `requestPending` 变量声明位置调整至 `sendMessage` 上方
+
+## [1.4.0] — 2026-06-15
+
+### 新增
+
+- 流式气泡加载动画：三点脉冲效果（`.os-loading-dots`），首块响应后自动消失
+- SW 冷启动自动重试：`onDisconnect` 时 SW 未响应则最多重试 2 次（300ms 间隔）
+- `chrome.runtime.connect` try/catch 保护，异常时展示友好错误
+
+### 修复
+
+- systemPrompt 占位符 `$DATE$` 改为 `__DATE__`，避免 Chrome i18n 校验误报
+- `sendMessage` 添加 `requestPending` 并发防护，Enter 键检查请求状态
+
+### 优化
+
+- Port 代理 fetch 超时从 120s 延长至 180s
+- `errorRequestCancelled` 消息优化为"请求中断，请重试"
+
 ## [1.3.2] — 2026-06-15
 
 ### 修复

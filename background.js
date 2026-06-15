@@ -43,7 +43,7 @@ chrome.runtime.onConnect.addListener((port) => {
 
         // 每个请求使用独立的 AbortController，防止并发覆盖
         const abortController = new AbortController();
-        const timeoutId = setTimeout(() => abortController.abort(), 180000);
+        let timeoutId = setTimeout(() => abortController.abort(), 180000);
 
         // disconnect 时仅取消当前请求
         const onDisconnect = () => {
@@ -63,7 +63,9 @@ chrome.runtime.onConnect.addListener((port) => {
                 signal: abortController.signal,
             });
 
+            // fetch 完成后切换为流式读取超时（5 分钟），防止服务器挂起
             clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => abortController.abort(), 300000);
 
             if (!response.ok) {
                 let err = `HTTP ${response.status}`;
@@ -72,6 +74,7 @@ chrome.runtime.onConnect.addListener((port) => {
                     err = data.error?.message || err;
                 } catch (_) {}
                 // 不在错误消息中暴露完整 API URL
+                clearTimeout(timeoutId);
                 port.postMessage({ type: 'error', error: err });
                 port.onDisconnect.removeListener(onDisconnect);
                 return;
@@ -116,7 +119,7 @@ chrome.runtime.onConnect.addListener((port) => {
                 if (delta?.content) fullText += delta.content;
             }
 
-            if (fullText) {
+            if (fullText || thinkingText) {
                 port.postMessage({ type: 'done', fullText, thinkingText: thinkingText || undefined });
             } else {
                 // 非流式兼容：使用独立 TextDecoder 避免流式解码器状态污染
@@ -132,8 +135,12 @@ chrome.runtime.onConnect.addListener((port) => {
                     } else {
                         port.postMessage({ type: 'error', error: chrome.i18n.getMessage('errorApiEmpty') });
                     }
-                } catch (_) {
-                    port.postMessage({ type: 'error', error: chrome.i18n.getMessage('errorApiEmpty') });
+                } catch (e) {
+                    // 区分 concatChunks 超限错误和 JSON 解析错误
+                    const msg = e instanceof Error && e.message
+                        ? e.message
+                        : chrome.i18n.getMessage('errorApiEmpty');
+                    port.postMessage({ type: 'error', error: msg });
                 }
             }
         } catch (e) {
@@ -144,6 +151,7 @@ chrome.runtime.onConnect.addListener((port) => {
                 error: chrome.i18n.getMessage('errorNetworkFailed'),
             });
         } finally {
+            clearTimeout(timeoutId);
             port.onDisconnect.removeListener(onDisconnect);
         }
     });
@@ -156,7 +164,9 @@ function extractDelta(line) {
 function concatChunks(chunks) {
     const total = chunks.reduce((a, c) => a + c.length, 0);
     // 安全上限：防止超大响应导致内存溢出
-    if (total > 10 * 1024 * 1024) return new Uint8Array(0);
+    if (total > 10 * 1024 * 1024) {
+        throw new Error('Response exceeds 10MB size limit');
+    }
     const result = new Uint8Array(total);
     let offset = 0;
     for (const c of chunks) { result.set(c, offset); offset += c.length; }
