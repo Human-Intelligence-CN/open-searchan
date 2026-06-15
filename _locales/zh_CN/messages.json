@@ -21,7 +21,7 @@
   "captureLoading": { "message": "📷 截图处理中..." },
 
   "settingsApiUrlLabel": { "message": "API 地址" },
-  "settingsApiUrlHint": { "message": "OpenAI 兼容的 Chat Completions 端点" },
+  "settingsApiUrlHint": { "message": "OpenAI 兼容的 Chat Completions 端点（仅支持 HTTPS）" },
   "settingsApiKeyLabel": { "message": "API Key" },
   "settingsClearKeyTitle": { "message": "清除 API Key" },
   "settingsApiKeyHint": { "message": "仅保存在本地浏览器中" },
@@ -41,7 +41,9 @@
   "errorContextInvalidated": { "message": "扩展已更新，请刷新页面后重试" },
   "errorApiEmpty": { "message": "API 返回为空" },
   "errorParseFailed": { "message": "解析失败: $1" },
-  "errorNetworkFailed": { "message": "网络请求失败，请求地址: $1" },
+  "errorHttpsRequired": { "message": "安全要求：仅支持 HTTPS API 地址，请修改后重试" },
+  "errorInvalidUrl": { "message": "API 地址格式无效，请检查后重试" },
+  "errorNetworkFailed": { "message": "网络请求失败，请检查 API 地址和网络连接" },
   "errorRequestCancelled": { "message": "请求已取消" },
 
   "settingsSaved": { "message": "✅ 设置已保存" },

@@ -26,13 +26,31 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 chrome.runtime.onConnect.addListener((port) => {
     if (port.name !== 'api-stream') return;
 
-    let abortController = null;
-
     port.onMessage.addListener(async (msg) => {
         if (msg.type !== 'api-request') return;
 
-        abortController = new AbortController();
+        // 强制 HTTPS：拒绝非加密请求，防止 API Key 明文泄露
+        try {
+            const u = new URL(msg.apiUrl);
+            if (u.protocol !== 'https:') {
+                port.postMessage({ type: 'error', error: chrome.i18n.getMessage('errorHttpsRequired') });
+                return;
+            }
+        } catch (_) {
+            port.postMessage({ type: 'error', error: chrome.i18n.getMessage('errorInvalidUrl') });
+            return;
+        }
+
+        // 每个请求使用独立的 AbortController，防止并发覆盖
+        const abortController = new AbortController();
         const timeoutId = setTimeout(() => abortController.abort(), 120000);
+
+        // disconnect 时仅取消当前请求
+        const onDisconnect = () => {
+            clearTimeout(timeoutId);
+            abortController.abort();
+        };
+        port.onDisconnect.addListener(onDisconnect);
 
         try {
             const response = await fetch(msg.apiUrl, {
@@ -53,13 +71,16 @@ chrome.runtime.onConnect.addListener((port) => {
                     const data = await response.json();
                     err = data.error?.message || err;
                 } catch (_) {}
-                port.postMessage({ type: 'error', error: err + '\n\n' + msg.apiUrl });
+                // 不在错误消息中暴露完整 API URL
+                port.postMessage({ type: 'error', error: err });
+                port.onDisconnect.removeListener(onDisconnect);
                 return;
             }
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let fullText = '', thinkingText = '', buffer = '';
+            let fullSent = 0, thinkingSent = 0;
             const rawChunks = [];
 
             while (true) {
@@ -75,10 +96,19 @@ chrome.runtime.onConnect.addListener((port) => {
                     if (delta?.reasoning_content) thinkingText += delta.reasoning_content;
                     if (delta?.content) fullText += delta.content;
                 }
-                port.postMessage({ type: 'chunk', fullText, thinkingText });
+                // 仅发送增量，避免每次 chunk 都发送累积全文
+                if (fullText.length > fullSent || thinkingText.length > thinkingSent) {
+                    port.postMessage({
+                        type: 'chunk',
+                        deltaText: fullText.slice(fullSent),
+                        deltaThinking: thinkingText.slice(thinkingSent),
+                    });
+                    fullSent = fullText.length;
+                    thinkingSent = thinkingText.length;
+                }
             }
 
-            // 处理尾部残留行
+            // 处理尾部残留行（stream: false 刷新解码器内部缓存）
             buffer += decoder.decode();
             if (buffer.startsWith('data: ') && buffer !== 'data: [DONE]') {
                 const delta = extractDelta(buffer);
@@ -89,10 +119,10 @@ chrome.runtime.onConnect.addListener((port) => {
             if (fullText) {
                 port.postMessage({ type: 'done', fullText, thinkingText: thinkingText || undefined });
             } else {
-                // 非流式兼容：尝试解析完整 JSON
+                // 非流式兼容：使用独立 TextDecoder 避免流式解码器状态污染
                 try {
                     const all = rawChunks.length > 0
-                        ? decoder.decode(concatChunks(rawChunks))
+                        ? new TextDecoder().decode(concatChunks(rawChunks))
                         : '';
                     const data = JSON.parse(all);
                     const replyMsg = data.choices?.[0]?.message;
@@ -111,13 +141,11 @@ chrome.runtime.onConnect.addListener((port) => {
             if (e.name === 'AbortError') return; // 被取消，静默
             port.postMessage({
                 type: 'error',
-                error: chrome.i18n.getMessage('errorNetworkFailed', msg.apiUrl),
+                error: chrome.i18n.getMessage('errorNetworkFailed'),
             });
+        } finally {
+            port.onDisconnect.removeListener(onDisconnect);
         }
-    });
-
-    port.onDisconnect.addListener(() => {
-        if (abortController) abortController.abort();
     });
 });
 
@@ -127,6 +155,8 @@ function extractDelta(line) {
 
 function concatChunks(chunks) {
     const total = chunks.reduce((a, c) => a + c.length, 0);
+    // 安全上限：防止超大响应导致内存溢出
+    if (total > 10 * 1024 * 1024) return new Uint8Array(0);
     const result = new Uint8Array(total);
     let offset = 0;
     for (const c of chunks) { result.set(c, offset); offset += c.length; }

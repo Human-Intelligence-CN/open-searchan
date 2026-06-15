@@ -1,4 +1,41 @@
 /* OPEN SEARCHAN Extension Styles */
+
+/* CSS 变量定义在 body 上，让 sidebar、toggle、overlay 都能继承 */
+body {
+    --os-bg: #1e1e2e;
+    --os-header: #181825;
+    --os-surface: #313244;
+    --os-border: #45475a;
+    --os-text: #cdd6f4;
+    --os-text-dim: #bac2de;
+    --os-muted: #6c7086;
+    --os-accent: #cba6f7;
+    --os-accent-hover: #b4befe;
+    --os-pink: #f5c2e7;
+    --os-success: #16a34a;
+    --os-success-hover: #94e2d5;
+    --os-red: #f38ba8;
+    --os-link: #89b4fa;
+    --os-btn-text: #ffffff;
+}
+body.os-light {
+    --os-bg: #f8f9fb;
+    --os-header: #ececf0;
+    --os-surface: #e8e8ee;
+    --os-border: #d4d4dc;
+    --os-text: #2c2c3a;
+    --os-text-dim: #555566;
+    --os-muted: #888896;
+    --os-accent: #7c3aed;
+    --os-accent-hover: #6d28d9;
+    --os-pink: #be185d;
+    --os-success: #16a34a;
+    --os-success-hover: #15803d;
+    --os-red: #e11d48;
+    --os-link: #2563eb;
+    --os-btn-text: #ffffff;
+}
+
 /* 侧边栏容器 */
 #os-sidebar {
     position: fixed;
@@ -16,42 +53,9 @@
     box-shadow: -4px 0 24px rgba(0,0,0,0.4);
     transition: transform 0.25s ease;
     transform: translateX(0);
-    --os-bg: #1e1e2e;
-    --os-header: #181825;
-    --os-surface: #313244;
-    --os-border: #45475a;
-    --os-text: #cdd6f4;
-    --os-text-dim: #bac2de;
-    --os-muted: #6c7086;
-    --os-accent: #cba6f7;
-    --os-accent-hover: #b4befe;
-    --os-pink: #f5c2e7;
-    --os-success: #16a34a;
-    --os-success-hover: #94e2d5;
-    --os-red: #f38ba8;
-    --os-link: #89b4fa;
-    --os-btn-text: #ffffff;
 }
 #os-sidebar.os-hidden {
     transform: translateX(400px);
-}
-#os-sidebar.os-light {
-    --os-bg: #f8f9fb;
-    --os-header: #ececf0;
-    --os-surface: #e8e8ee;
-    --os-border: #d4d4dc;
-    --os-text: #2c2c3a;
-    --os-text-dim: #555566;
-    --os-muted: #888896;
-    --os-accent: #7c3aed;
-    --os-accent-hover: #6d28d9;
-    --os-pink: #be185d;
-    --os-success: #16a34a;
-    --os-success-hover: #15803d;
-    --os-red: #e11d48;
-    --os-link: #2563eb;
-    --os-btn-text: #ffffff;
-    filter: none;
 }
 
 /* 侧边栏头部 */
@@ -427,6 +431,7 @@
 }
 #os-overlay-hint {
     position: absolute;
+    z-index: 1;
     bottom: 24px;
     left: 50%;
     transform: translateX(-50%);

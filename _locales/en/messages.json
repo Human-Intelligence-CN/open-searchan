@@ -21,7 +21,7 @@
   "captureLoading": { "message": "📷 Processing screenshot..." },
 
   "settingsApiUrlLabel": { "message": "API URL" },
-  "settingsApiUrlHint": { "message": "OpenAI-compatible Chat Completions endpoint" },
+  "settingsApiUrlHint": { "message": "OpenAI-compatible Chat Completions endpoint (HTTPS required)" },
   "settingsApiKeyLabel": { "message": "API Key" },
   "settingsClearKeyTitle": { "message": "Clear API Key" },
   "settingsApiKeyHint": { "message": "Stored locally in browser only" },
@@ -41,7 +41,9 @@
   "errorContextInvalidated": { "message": "Extension has been updated, please refresh the page and try again" },
   "errorApiEmpty": { "message": "API returned empty response" },
   "errorParseFailed": { "message": "Parse error: $1" },
-  "errorNetworkFailed": { "message": "Network request failed. URL: $1" },
+  "errorHttpsRequired": { "message": "Security: only HTTPS API URLs are supported. Please update your settings." },
+  "errorInvalidUrl": { "message": "Invalid API URL format. Please check and try again." },
+  "errorNetworkFailed": { "message": "Network request failed. Please check the API URL and your connection." },
   "errorRequestCancelled": { "message": "Request cancelled" },
 
   "settingsSaved": { "message": "✅ Settings saved" },
