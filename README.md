@@ -2,6 +2,9 @@
 
 > Alt+Z 框选截图 → AI 多模态模型 → 右边栏对话  
 > **识图 · 翻译 · 解答** 三位一体浏览器扩展
+## 注意
+### 已在edge扩展商店上架！！！
+- <https://microsoftedge.microsoft.com/addons/detail/hohnjfiependbffcpabijoblngcgghhn>
 
 ## 功能
 
